@@ -3,7 +3,7 @@ using System.Reflection.Metadata;
 
 namespace MetadataAnalysis.Metadata.ILParse
 {
-    public class CustomAttributeILMetadata
+    public class CustomAttributeILMetadata : ICustomAttributeMetadata
     {
         public static IEnumerable<CustomAttributeILMetadata> FromHandleCollectionWithMetadataReader(
             MetadataReader mdReader,
@@ -16,6 +16,8 @@ namespace MetadataAnalysis.Metadata.ILParse
                     CustomAttribute customAttribute = mdReader.GetCustomAttribute(caHandle);
                 }
             }
+
+            yield break;
         }
     }
 }

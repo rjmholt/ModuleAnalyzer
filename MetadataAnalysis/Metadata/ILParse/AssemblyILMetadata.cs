@@ -2,6 +2,8 @@ using System;
 using System.Collections.Immutable;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace MetadataAnalysis.Metadata.ILParse
 {
@@ -10,25 +12,28 @@ namespace MetadataAnalysis.Metadata.ILParse
         public static AssemblyILMetadata FromMetadataReader(MetadataReader mdReader)
         {
             AssemblyDefinition asmDef = mdReader.GetAssemblyDefinition();
-            string name = mdReader.GetString(asmDef.Name);
-            Version version = asmDef.Version;
-            string culture = mdReader.GetString(asmDef.Culture);
-            AssemblyFlags flags = asmDef.Flags;
-            AssemblyHashAlgorithm hashAlgorithm = asmDef.HashAlgorithm;
-            ImmutableArray<byte> publicKey = mdReader.GetBlobContent(asmDef.PublicKey);
-            IImmutableList<ICustomAttributeMetadata> customAttributes = GetAssemblyCustomAttributes();
-            IImmutableDictionary<string, ITypeDefinitionMetadata> typeDefinitions = GetAllTypeDefinitions();
 
-            return new AssemblyILMetadata(
-                name,
-                version,
-                culture,
-                flags,
-                publicKey,
-                hashAlgorithm,
-                customAttributes,
-                typeDefinitions
-            );
+            var customAttributes = CustomAttributeILMetadata.FromHandleCollectionWithMetadataReader(mdReader, mdReader.CustomAttributes)
+                                                            .OfType<ICustomAttributeMetadata>()
+                                                            .ToImmutableArray();
+
+            var typeDefinitions = new Dictionary<string, ITypeMetadata>();
+            foreach (TypeILMetadata typeDef in TypeILMetadata.FromMetadataReader(mdReader))
+            {
+                typeDefinitions.Add(typeDef.Name, typeDef);
+            }
+
+            return new AssemblyILMetadata()
+            {
+                Name             = mdReader.GetString(asmDef.Name),
+                Version          = asmDef.Version,
+                Culture          = mdReader.GetString(asmDef.Culture),
+                Flags            = asmDef.Flags,
+                HashAlgorithm    = asmDef.HashAlgorithm,
+                PublicKey        = mdReader.GetBlobContent(asmDef.PublicKey),
+                CustomAttributes = customAttributes,
+                TypeDefinitions  = typeDefinitions.ToImmutableDictionary()
+            };
         }
 
         public AssemblyILMetadata(
@@ -39,7 +44,7 @@ namespace MetadataAnalysis.Metadata.ILParse
             ImmutableArray<byte> publicKey,
             AssemblyHashAlgorithm hashAlgorithm,
             IImmutableList<ICustomAttributeMetadata> customAttributes,
-            IImmutableDictionary<string, ITypeDefinitionMetadata> typeDefinitions
+            IImmutableDictionary<string, ITypeMetadata> typeDefinitions
         )
         {
             Name = name;
@@ -70,6 +75,6 @@ namespace MetadataAnalysis.Metadata.ILParse
 
         public IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; private set; }
 
-        public IImmutableDictionary<string, ITypeDefinitionMetadata> TypeDefinitions { get; private set; }
+        public IImmutableDictionary<string, ITypeMetadata> TypeDefinitions { get; private set; }
     }
 }

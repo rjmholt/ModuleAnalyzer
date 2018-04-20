@@ -20,6 +20,6 @@ namespace MetadataAnalysis.Metadata
 
         IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; }
 
-        IImmutableDictionary<string, ITypeDefinitionMetadata> TypeDefinitions { get; }
+        IImmutableDictionary<string, ITypeMetadata> TypeDefinitions { get; }
     }
 }
