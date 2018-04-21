@@ -1,6 +1,6 @@
 namespace MetadataAnalysis.Metadata
 {
-    public interface IConstructorDefinitionMetadata
+    public interface IMethodMetadata
     {
          
     }
