@@ -1,4 +1,4 @@
-namespace MetadataAnalysis.Metadata
+namespace MetadataAnalysis.Metadata.Interface
 {
     public interface ICustomAttributeMetadata
     {

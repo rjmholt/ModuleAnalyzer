@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using System.Collections.Immutable;
 
-namespace MetadataAnalysis.Metadata
+namespace MetadataAnalysis.Metadata.Interface
 {
     public interface IAssemblyMetadata
     {
