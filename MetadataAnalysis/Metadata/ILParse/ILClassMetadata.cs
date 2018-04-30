@@ -10,14 +10,24 @@ namespace MetadataAnalysis.Metadata.ILParse
             string @namespace,
             ProtectionLevel protectionLevel,
             ITypeMetadata baseType,
+            ITypeMetadata declaringType,
             IImmutableList<IConstructorMetadata> constructors,
             IImmutableDictionary<string, IFieldMetadata> fields,
             IImmutableDictionary<string, IPropertyMetadata> properties,
             IImmutableDictionary<string, IImmutableList<IMethodMetadata>> methods,
-            IImmutableDictionary<string, ITypeMetadata> nestedTypes,
             bool isAbstract,
             bool isSealed
-        ) : base(name, @namespace, TypeKind.Class, protectionLevel, baseType, constructors, fields, properties, methods, nestedTypes)
+        ) : base(
+            name,
+            @namespace,
+            TypeKind.Class,
+            protectionLevel,
+            baseType,
+            declaringType,
+            constructors,
+            fields,
+            properties,
+            methods)
         {
             IsAbstract = isAbstract;
             IsSealed = isSealed;

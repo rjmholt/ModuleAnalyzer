@@ -9,22 +9,22 @@ namespace MetadataAnalysis.Metadata.ILParse
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
+            ITypeMetadata declaringType,
             IImmutableList<IConstructorMetadata> constructors,
             IImmutableDictionary<string, IFieldMetadata> fields,
             IImmutableDictionary<string, IPropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<IMethodMetadata>> methods,
-            IImmutableDictionary<string, ITypeMetadata> nestedTypes)
+            IImmutableDictionary<string, IImmutableList<IMethodMetadata>> methods)
             : base(
                 name,
                 @namespace,
                 TypeKind.Struct,
                 protectionLevel,
                 LoadedTypes.ValueTypeMetadata,
+                declaringType,
                 constructors,
                 fields,
                 properties,
-                methods,
-                nestedTypes)
+                methods)
         {
         }
     }

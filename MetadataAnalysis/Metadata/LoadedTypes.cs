@@ -9,14 +9,26 @@ using System.Collections.Generic;
 
 namespace MetadataAnalysis.Metadata
 {
+    /// <summary>
+    /// Static class to deal with getting and caching type metadata from
+    /// types that are loaded in the runtime while parsing.
+    /// </summary>
     public static class LoadedTypes
     {
+        /// <summary>
+        /// A cache of the types fetched from the .NET runtime.
+        /// </summary>
         private static ConcurrentDictionary<Type, ITypeMetadata> s_typeMetadataCache;
 
+        /// <summary>
+        /// Initialize the loaded type cache with common primitive types.
+        /// </summary>
         static LoadedTypes()
         {
+            // Initialize the cache
             s_typeMetadataCache = new ConcurrentDictionary<Type, ITypeMetadata>();
 
+            // Process the common base types
             Type objectType = typeof(object);
             Type valueType = typeof(ValueType);
             Type enumType = typeof(Enum);
@@ -26,42 +38,51 @@ namespace MetadataAnalysis.Metadata
                 objectType.Namespace,
                 ProtectionLevel.Public,
                 null,
+                null,
                 GetConstructorMetadata(objectType),
                 GetFieldMetadata(objectType),
                 GetPropertyMetadata(objectType),
                 GetMethodMetadata(objectType),
-                GetNestedTypeMetadata(objectType),
                 isAbstract: false,
                 isSealed: false
-            );
+            )
+            {
+                NestedTypes = GetNestedTypeMetadata(objectType)
+            };
 
             var valueTypeMetadata = new ILClassMetadata(
                 valueType.Name,
                 valueType.Namespace,
                 ProtectionLevel.Public,
                 objectTypeMetadata,
+                null,
                 GetConstructorMetadata(valueType),
                 GetFieldMetadata(valueType),
                 GetPropertyMetadata(valueType),
                 GetMethodMetadata(valueType),
-                GetNestedTypeMetadata(valueType),
                 isAbstract: true,
                 isSealed: false
-            );
+            )
+            {
+                NestedTypes = GetNestedTypeMetadata(valueType)
+            };
 
             var enumTypeMetadata = new ILClassMetadata(
                 enumType.Name,
                 enumType.Namespace,
                 ProtectionLevel.Public,
                 valueTypeMetadata,
+                null,
                 GetConstructorMetadata(enumType),
                 GetFieldMetadata(enumType),
                 GetPropertyMetadata(enumType),
                 GetMethodMetadata(enumType),
-                GetNestedTypeMetadata(enumType),
                 isAbstract: true,
                 isSealed: false
-            );
+            )
+            {
+                NestedTypes = GetNestedTypeMetadata(enumType)
+            };
 
             ObjectTypeMetadata = objectTypeMetadata;
             ValueTypeMetadata  = valueTypeMetadata;
@@ -72,26 +93,46 @@ namespace MetadataAnalysis.Metadata
             s_typeMetadataCache.TryAdd(enumType, enumTypeMetadata);
         }
 
+        /// <summary>
+        /// The type metadata for System.Object.
+        /// </summary>
         public static IClassMetadata ObjectTypeMetadata { get; }
 
+        /// <summary>
+        /// The type metadata for System.ValueType (the struct base type).
+        /// </summary>
         public static IClassMetadata ValueTypeMetadata { get; }
 
+        /// <summary>
+        /// The type metadata for System.Enum (the enum base type).
+        /// </summary>
         public static IClassMetadata EnumTypeMetadata { get; }
 
+        /// <summary>
+        /// Get a type metadata object from a system type object.
+        /// </summary>
+        /// <param name="type">the type for which we want a metadata object.</param>
+        /// <returns>an object representing the metadata of the given type.</returns>
         public static ITypeMetadata FromType(Type type)
         {
+            // Search the cache first
             ITypeMetadata typeMetadata;
             if (s_typeMetadataCache.TryGetValue(type, out typeMetadata))
             {
                 return typeMetadata;
             }
 
+            // We'll want the declaring type in any case
+            ITypeMetadata declaringType = type.BaseType == null ? null : FromType(type.BaseType);
+
+            // We differentiate based on what kind of type
             if (type.IsEnum)
             {
                 typeMetadata = new ILEnumMetadata(
                     type.Name,
                     type.Namespace,
                     GetTypeProtectionLevel(type),
+                    declaringType,
                     Enum.GetNames(type).ToImmutableArray()
                 );
             }
@@ -101,12 +142,15 @@ namespace MetadataAnalysis.Metadata
                     type.Name,
                     type.Namespace,
                     GetTypeProtectionLevel(type),
+                    declaringType,
                     GetConstructorMetadata(type),
                     GetFieldMetadata(type),
                     GetPropertyMetadata(type),
-                    GetMethodMetadata(type),
-                    GetNestedTypeMetadata(type)
-                );
+                    GetMethodMetadata(type)
+                )
+                {
+                    NestedTypes = GetNestedTypeMetadata(type)
+                };
             }
             else
             {
@@ -114,28 +158,39 @@ namespace MetadataAnalysis.Metadata
                     type.Name,
                     type.Namespace,
                     GetTypeProtectionLevel(type),
-                    FromType(type.BaseType),
+                    type.BaseType == null ? null : FromType(type.BaseType),
+                    declaringType,
                     GetConstructorMetadata(type),
                     GetFieldMetadata(type),
                     GetPropertyMetadata(type),
                     GetMethodMetadata(type),
-                    GetNestedTypeMetadata(type),
                     type.IsAbstract,
                     type.IsSealed
-                );
+                )
+                {
+                    NestedTypes = GetNestedTypeMetadata(type)
+                };
             }
 
             if (!s_typeMetadataCache.TryAdd(type, typeMetadata))
             {
+                // This shouldn't happen, but throw an exception in case it does
                 throw new Exception("Type already cached!");
             }
 
             return typeMetadata;
         }
 
-        public static bool TryFindByName(string typeName, out ITypeMetadata typeMetadata)
+        /// <summary>
+        /// Try and find a type in the runtime based on its full name.
+        /// </summary>
+        /// <param name="fullTypeName">the full name of the type to search for.</param>
+        /// <param name="typeMetadata">the metadata of the type when its found.</param>
+        /// <returns>true if the type is found, false otherwise.</returns>
+        public static bool TryFindByName(string fullTypeName, out ITypeMetadata typeMetadata)
         {
-            Type type = Type.GetType(typeName);
+            // Look for the type by name, and if we find it, use our type function
+            Type type = Type.GetType(fullTypeName);
             if (type == null)
             {
                 typeMetadata = null;
@@ -146,6 +201,11 @@ namespace MetadataAnalysis.Metadata
             return true;
         }
 
+        /// <summary>
+        /// Get the accessibility level of a type.
+        /// </summary>
+        /// <param name="type">the type to get the accessibility of.</param>
+        /// <returns>the accessibility level of the type.</returns>
         private static ProtectionLevel GetTypeProtectionLevel(Type type)
         {
             if (type.IsPublic || type.IsNestedPublic)
@@ -171,26 +231,51 @@ namespace MetadataAnalysis.Metadata
             return ProtectionLevel.Internal;
         }
 
+        /// <summary>
+        /// Get the metadata for the constructors of a type.
+        /// </summary>
+        /// <param name="type">the type to get the constructors of.</param>
+        /// <returns>a list of the constructors of the given type.</returns>
         private static IImmutableList<IConstructorMetadata> GetConstructorMetadata(Type type)
         {
             return null;
         }
 
+        /// <summary>
+        /// Get the metadata for the fields of a type.
+        /// </summary>
+        /// <param name="type">the type to get the fields of.</param>
+        /// <returns>a dictionary of fields on the type, keyed by name.</returns>
         private static IImmutableDictionary<string, IFieldMetadata> GetFieldMetadata(Type type)
         {
             return null;
         }
 
+        /// <summary>
+        /// Get the metadata for the properties of a type.
+        /// </summary>
+        /// <param name="type">the type to get the properties of.</param>
+        /// <returns>a dictionary of properties on the type, keyed by name.</returns>
         private static IImmutableDictionary<string, IPropertyMetadata> GetPropertyMetadata(Type type)
         {
             return null;
         }
 
+        /// <summary>
+        /// Get the metadata for the methods of a type.
+        /// </summary>
+        /// <param name="type">the type to get the methods of.</param>
+        /// <returns>a dictionary of methods on the type, keyed by name.</returns>
         private static IImmutableDictionary<string, IImmutableList<IMethodMetadata>> GetMethodMetadata(Type type)
         {
             return null;
         }
 
+        /// <summary>
+        /// Get the metadata for the types defined within the type.
+        /// </summary>
+        /// <param name="type">the type to get the nested types of.</param>
+        /// <returns>a dictionary of nested types in the given type, keyed by name.</returns>
         private static IImmutableDictionary<string, ITypeMetadata> GetNestedTypeMetadata(Type type)
         {
             var nestedTypes = new Dictionary<string, ITypeMetadata>();

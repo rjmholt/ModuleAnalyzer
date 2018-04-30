@@ -10,6 +10,7 @@ namespace MetadataAnalysis.Metadata.ILParse
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
+            ITypeMetadata declaringType,
             IImmutableList<string> members) :
             base(
                 name,
@@ -17,11 +18,11 @@ namespace MetadataAnalysis.Metadata.ILParse
                 TypeKind.Enum,
                 protectionLevel,
                 LoadedTypes.EnumTypeMetadata,
+                declaringType,
                 ImmutableArray<IConstructorMetadata>.Empty,
                 ImmutableDictionary<string, IFieldMetadata>.Empty,
                 ImmutableDictionary<string, IPropertyMetadata>.Empty,
-                ImmutableDictionary<string, IImmutableList<IMethodMetadata>>.Empty,
-                ImmutableDictionary<string, ITypeMetadata>.Empty)
+                ImmutableDictionary<string, IImmutableList<IMethodMetadata>>.Empty)
         {
             Members = members;
         }

@@ -1,6 +1,9 @@
 namespace MetadataAnalysis.Metadata.Interface
 {
-    public interface IConstructorMetadata
+    /// <summary>
+    /// Represents the metadata of a constructor for a type.
+    /// </summary>
+    public interface IConstructorMetadata : IMethodMetadata
     {
          
     }

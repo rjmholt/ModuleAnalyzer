@@ -1,11 +1,24 @@
 namespace MetadataAnalysis.Metadata.Interface
 {
+    /// <summary>
+    /// Represents the metadata of a class type.
+    /// </summary>
     public interface IClassMetadata : ITypeMetadata
     {
-         bool IsStatic { get; }
+        /// <summary>
+        /// Whether the class is static or not.
+        /// </summary>
+        bool IsStatic { get; }
 
-         bool IsAbstract { get; }
+        /// <summary>
+        /// Whether the class is abstract or not.
+        /// </summary>
+        bool IsAbstract { get; }
 
-         bool IsSealed { get; }
+        /// <summary>
+        /// Whether the class is sealed or not.
+        /// </summary>
+        /// <returns></returns>
+        bool IsSealed { get; }
     }
 }

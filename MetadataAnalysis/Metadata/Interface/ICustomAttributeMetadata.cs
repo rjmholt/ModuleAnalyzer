@@ -1,6 +1,9 @@
 namespace MetadataAnalysis.Metadata.Interface
 {
-    public interface ICustomAttributeMetadata
+    /// <summary>
+    /// Represents the metadata of a custom attribute.
+    /// </summary>
+    public interface ICustomAttributeMetadata : IClassMetadata
     {
          
     }
