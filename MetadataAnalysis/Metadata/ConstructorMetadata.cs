@@ -1,10 +1,10 @@
 namespace MetadataAnalysis.Metadata
 {
-    public class ILConstructorMetadata : MethodMetadata
+    public class ConstructorMetadata : MethodMetadata
     {
         public const string CTOR_METHOD_NAME = "ctor";
 
-        public ILConstructorMetadata(ProtectionLevel protectionLevel, bool isStatic)
+        public ConstructorMetadata(ProtectionLevel protectionLevel, bool isStatic)
             : base(CTOR_METHOD_NAME, protectionLevel, isStatic)
         {
         }

@@ -335,6 +335,25 @@ namespace MetadataAnalysis.Test
         protected AbstractObject()
         {
         }
+
+        public abstract string AbstractMethod();
+
+        public virtual void VirtualMethod()
+        {
+        }
+    }
+
+    public class OverrideObject : AbstractObject
+    {
+        public override string AbstractMethod()
+        {
+            return String.Empty;
+        }
+
+        public new void VirtualMethod()
+        {
+
+        }
     }
 
     public enum TestEnum
@@ -376,7 +395,7 @@ namespace MetadataAnalysis.Test
 
         }
 
-        public unsafe void PointerMethod(int* objPtr)
+        unsafe public void PointerMethod(int* objPtr)
         {
 
         }
@@ -390,4 +409,11 @@ namespace MetadataAnalysis.Test
     }
 
     public delegate void StandaloneDelegate(object obj);
+
+    public interface IInterface
+    {
+        string StringProperty { get; set; }
+
+        void ObjectMethod(object obj);
+    }
 }

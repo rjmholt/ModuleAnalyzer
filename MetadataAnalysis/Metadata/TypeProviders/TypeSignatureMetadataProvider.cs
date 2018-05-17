@@ -1,18 +1,64 @@
 using System;
+using System.Collections.Immutable;
 using System.Reflection.Metadata;
 
 namespace MetadataAnalysis.Metadata.TypeProviders
 {
-    public class ILSimpleTypeMetadataProvider : ISimpleTypeProvider<TypeMetadata>
+    public class TypeSignatureMetadataProvider : ISignatureTypeProvider<TypeSignatureMetadata, TypeMetadataGenericContext>
     {
         private MetadataAnalyzer _metadataAnalyzer;
 
-        public ILSimpleTypeMetadataProvider(MetadataAnalyzer metadataAnalyzer)
+        public TypeSignatureMetadataProvider(MetadataAnalyzer metadataAnalyzer)
         {
             _metadataAnalyzer = metadataAnalyzer;
         }
 
-        public TypeMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
+        public TypeSignatureMetadata GetArrayType(TypeSignatureMetadata elementType, ArrayShape shape)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetByReferenceType(TypeSignatureMetadata elementType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetFunctionPointerType(MethodSignature<TypeSignatureMetadata> signature)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetGenericInstantiation(TypeSignatureMetadata genericType, ImmutableArray<TypeSignatureMetadata> typeArguments)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetGenericMethodParameter(TypeMetadataGenericContext genericContext, int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetGenericTypeParameter(TypeMetadataGenericContext genericContext, int index)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetModifiedType(TypeSignatureMetadata modifier, TypeSignatureMetadata unmodifiedType, bool isRequired)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetPinnedType(TypeSignatureMetadata elementType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetPointerType(TypeSignatureMetadata elementType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
         {
             switch (typeCode)
             {
@@ -75,18 +121,28 @@ namespace MetadataAnalysis.Metadata.TypeProviders
             }
         }
 
-        public TypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
+        public TypeSignatureMetadata GetSZArrayType(TypeSignatureMetadata elementType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypeSignatureMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
         {
             TypeDefinition typeDef = reader.GetTypeDefinition(handle);
             // TODO: Make this method accept a metadata reader
             return _metadataAnalyzer.ReadTypeMetadata(typeDef);
         }
 
-        public TypeMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
+        public TypeSignatureMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
         {
             TypeReference typeRef = reader.GetTypeReference(handle);
             _metadataAnalyzer.TryLookupTypeReference(typeRef, out TypeMetadata typeMetadata);
             return typeMetadata;
+        }
+
+        public TypeSignatureMetadata GetTypeFromSpecification(MetadataReader reader, TypeMetadataGenericContext genericContext, TypeSpecificationHandle handle, byte rawTypeKind)
+        {
+            throw new NotImplementedException();
         }
     }
 }
