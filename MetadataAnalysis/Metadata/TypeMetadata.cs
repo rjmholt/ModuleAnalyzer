@@ -1,22 +1,21 @@
 using System;
 using System.Collections.Immutable;
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public abstract class ILTypeMetadata : ITypeMetadata
+    public abstract class TypeMetadata
     {
-        protected ILTypeMetadata(
+        protected TypeMetadata(
             string name,
             string @namespace,
             TypeKind typeKind,
             ProtectionLevel protectionLevel,
-            ITypeMetadata baseType,
-            ITypeMetadata declaringType,
-            IImmutableList<IConstructorMetadata> constructors,
-            IImmutableDictionary<string, IFieldMetadata> fields,
-            IImmutableDictionary<string, IPropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<IMethodMetadata>> methods
+            TypeMetadata baseType,
+            TypeMetadata declaringType,
+            IImmutableList<ConstructorMetadata> constructors,
+            IImmutableDictionary<string, FieldMetadata> fields,
+            IImmutableDictionary<string, PropertyMetadata> properties,
+            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods
         )
         {
             Name = name;
@@ -56,18 +55,18 @@ namespace MetadataAnalysis.Metadata.ILParse
 
         public ProtectionLevel ProtectionLevel { get; }
 
-        public ITypeMetadata BaseType { get; }
+        public TypeMetadata BaseType { get; }
 
-        public ITypeMetadata DeclaringType { get; }
+        public TypeMetadata DeclaringType { get; }
 
-        public IImmutableList<IConstructorMetadata> Constructors { get; }
+        public IImmutableList<ConstructorMetadata> Constructors { get; }
 
-        public IImmutableDictionary<string, IFieldMetadata> Fields { get; }
+        public IImmutableDictionary<string, FieldMetadata> Fields { get; }
 
-        public IImmutableDictionary<string, IPropertyMetadata> Properties { get; }
+        public IImmutableDictionary<string, PropertyMetadata> Properties { get; }
 
-        public IImmutableDictionary<string, IImmutableList<IMethodMetadata>> Methods { get; }
+        public IImmutableDictionary<string, IImmutableList<MethodMetadata>> Methods { get; }
 
-        public IImmutableDictionary<string, ITypeMetadata> NestedTypes { get; internal set; }
+        public IImmutableDictionary<string, TypeMetadata> NestedTypes { get; internal set; }
     }
 }

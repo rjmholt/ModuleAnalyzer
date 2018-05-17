@@ -1,8 +1,6 @@
-using MetadataAnalysis.Metadata.Interface;
-
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public class ILConstructorMetadata : ILMethodMetadata, IConstructorMetadata
+    public class ILConstructorMetadata : MethodMetadata
     {
         public const string CTOR_METHOD_NAME = "ctor";
 

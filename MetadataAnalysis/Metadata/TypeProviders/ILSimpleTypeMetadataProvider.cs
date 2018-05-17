@@ -1,11 +1,9 @@
 using System;
 using System.Reflection.Metadata;
-using MetadataAnalysis.Metadata.ILParse;
-using MetadataAnalysis.Metadata.Interface;
 
 namespace MetadataAnalysis.Metadata.TypeProviders
 {
-    public class ILSimpleTypeMetadataProvider : ISimpleTypeProvider<ITypeMetadata>
+    public class ILSimpleTypeMetadataProvider : ISimpleTypeProvider<TypeMetadata>
     {
         private MetadataAnalyzer _metadataAnalyzer;
 
@@ -14,7 +12,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
             _metadataAnalyzer = metadataAnalyzer;
         }
 
-        public ITypeMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
+        public TypeMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
         {
             switch (typeCode)
             {
@@ -77,17 +75,17 @@ namespace MetadataAnalysis.Metadata.TypeProviders
             }
         }
 
-        public ITypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
+        public TypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
         {
             TypeDefinition typeDef = reader.GetTypeDefinition(handle);
             // TODO: Make this method accept a metadata reader
             return _metadataAnalyzer.ReadTypeMetadata(typeDef);
         }
 
-        public ITypeMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
+        public TypeMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
         {
             TypeReference typeRef = reader.GetTypeReference(handle);
-            _metadataAnalyzer.TryLookupTypeReference(typeRef, out ITypeMetadata typeMetadata);
+            _metadataAnalyzer.TryLookupTypeReference(typeRef, out TypeMetadata typeMetadata);
             return typeMetadata;
         }
     }

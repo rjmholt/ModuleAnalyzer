@@ -1,20 +1,19 @@
 using System.Collections.Immutable;
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public class ILClassMetadata : ILTypeMetadata, IClassMetadata
+    public class ClassMetadata : TypeMetadata
     {
-        public ILClassMetadata(
+        public ClassMetadata(
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
-            ITypeMetadata baseType,
-            ITypeMetadata declaringType,
-            IImmutableList<IConstructorMetadata> constructors,
-            IImmutableDictionary<string, IFieldMetadata> fields,
-            IImmutableDictionary<string, IPropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<IMethodMetadata>> methods,
+            TypeMetadata baseType,
+            TypeMetadata declaringType,
+            IImmutableList<ConstructorMetadata> constructors,
+            IImmutableDictionary<string, FieldMetadata> fields,
+            IImmutableDictionary<string, PropertyMetadata> properties,
+            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
             bool isAbstract,
             bool isSealed
         ) : base(

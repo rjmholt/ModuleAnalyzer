@@ -1,11 +1,10 @@
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public class ILFieldMetadata : IFieldMetadata
+    public class FieldMetadata
     {
-        public ILFieldMetadata(
-            ITypeMetadata type,
+        public FieldMetadata(
+            TypeMetadata type,
             string name,
             ProtectionLevel protectionLevel,
             bool isStatic
@@ -17,7 +16,7 @@ namespace MetadataAnalysis.Metadata.ILParse
             IsStatic = isStatic;
         }
 
-        public ITypeMetadata Type { get; }
+        public TypeMetadata Type { get; }
 
         public string Name { get; }
 

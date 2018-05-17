@@ -1,21 +1,20 @@
 using System;
 using System.Collections.Immutable;
 using System.Reflection;
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public class ILAssemblyMetadata : IAssemblyMetadata
+    public class AssemblyMetadata
     {
-        public ILAssemblyMetadata(
+        public AssemblyMetadata(
             string name,
             Version version,
             string culture,
             AssemblyFlags flags,
             ImmutableArray<byte> publicKey,
             AssemblyHashAlgorithm hashAlgorithm,
-            IImmutableList<ICustomAttributeMetadata> customAttributes,
-            IImmutableDictionary<string, ITypeMetadata> typeDefinitions
+            IImmutableList<CustomAttributeMetadata> customAttributes,
+            IImmutableDictionary<string, TypeMetadata> typeDefinitions
         )
         {
             Name = name;
@@ -40,8 +39,8 @@ namespace MetadataAnalysis.Metadata.ILParse
 
         public AssemblyHashAlgorithm HashAlgorithm { get; }
 
-        public IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; }
+        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
 
-        public IImmutableDictionary<string, ITypeMetadata> TypeDefinitions { get; }
+        public IImmutableDictionary<string, TypeMetadata> TypeDefinitions { get; }
     }
 }

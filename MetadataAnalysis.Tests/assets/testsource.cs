@@ -348,4 +348,46 @@ namespace MetadataAnalysis.Test
     {
         public int num;
     }
+
+    public class TypeSignatureObject
+    {
+        public void ArrayMethod(object[] objArray)
+        {
+
+        }
+
+        public void RefMethod(ref object obj)
+        {
+
+        }
+
+        public void OutMethod(out object obj)
+        {
+            obj = null;
+        }
+
+        public void MultiArrayMethod(object[,,] objCube)
+        {
+
+        }
+
+        public void ArrayOfArrayMethod(object[][][] objNestedArray)
+        {
+
+        }
+
+        public unsafe void PointerMethod(int* objPtr)
+        {
+
+        }
+
+        public void FuncPointerMethod(Func<bool, bool> boolFunc)
+        {
+
+        }
+
+        public delegate void SignatureDelegate(int x);
+    }
+
+    public delegate void StandaloneDelegate(object obj);
 }

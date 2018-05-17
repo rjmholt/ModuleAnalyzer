@@ -1,16 +1,15 @@
 using System.Collections.Immutable;
 using MetadataAnalysis.Metadata;
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public class ILEnumMetadata : ILTypeMetadata, IEnumMetadata
+    public class EnumMetadata : TypeMetadata
     {
-        public ILEnumMetadata(
+        public EnumMetadata(
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
-            ITypeMetadata declaringType,
+            TypeMetadata declaringType,
             IImmutableList<string> members) :
             base(
                 name,
@@ -19,10 +18,10 @@ namespace MetadataAnalysis.Metadata.ILParse
                 protectionLevel,
                 LoadedTypes.EnumTypeMetadata,
                 declaringType,
-                ImmutableArray<IConstructorMetadata>.Empty,
-                ImmutableDictionary<string, IFieldMetadata>.Empty,
-                ImmutableDictionary<string, IPropertyMetadata>.Empty,
-                ImmutableDictionary<string, IImmutableList<IMethodMetadata>>.Empty)
+                ImmutableArray<ConstructorMetadata>.Empty,
+                ImmutableDictionary<string, FieldMetadata>.Empty,
+                ImmutableDictionary<string, PropertyMetadata>.Empty,
+                ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty)
         {
             Members = members;
         }

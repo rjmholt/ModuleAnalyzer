@@ -1,10 +1,9 @@
-using MetadataAnalysis.Metadata.Interface;
 
-namespace MetadataAnalysis.Metadata.ILParse
+namespace MetadataAnalysis.Metadata
 {
-    public abstract class ILMemberMetadata : IMemberMetadata
+    public abstract class MemberMetadata
     {
-        protected ILMemberMetadata(string name, ProtectionLevel protectionLevel, bool isStatic)
+        protected MemberMetadata(string name, ProtectionLevel protectionLevel, bool isStatic)
         {
             Name = name;
             ProtectionLevel = protectionLevel;
