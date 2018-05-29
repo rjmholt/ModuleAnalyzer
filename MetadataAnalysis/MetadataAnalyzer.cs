@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using MetadataAnalysis.Metadata;
+using MetadataAnalysis.Metadata.TypeProviders;
 
 namespace MetadataAnalysis
 {
@@ -16,6 +17,8 @@ namespace MetadataAnalysis
     /// </summary>
     public class MetadataAnalyzer : IDisposable
     {
+        public const string DEFAULT_ENUM_MEMBER_NAME = "value__";
+
         /// <summary>
         /// The name of the global class the CLR uses to store
         /// standalone functions in languages that support them.
@@ -301,26 +304,78 @@ namespace MetadataAnalysis
             IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods;
             (constructors, methods) = ReadMethodMetadata(typeDef.GetMethods());
 
-            var typeMetadata = new ClassMetadata(
-                name,
-                @namespace,
-                protectionLevel,
-                baseType,
-                declaringType,
-                constructors,
-                ReadFieldMetadata(typeDef.GetFields()),
-                ReadPropertyMetadata(typeDef.GetProperties()),
-                methods,
-                isAbstract,
-                isSealed
-            );
+            IImmutableList<GenericParameterMetadata> genericParameters = ReadGenericParameters(typeDef.GetGenericParameters());
+
+            IImmutableList<CustomAttributeMetadata> customAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
+
+            TypeMetadata typeMetadata;
+            switch (GetBaseTypeKind(baseType))
+            {
+                case TypeKind.Class:
+                    typeMetadata = new ClassMetadata(
+                        name,
+                        @namespace,
+                        protectionLevel,
+                        baseType,
+                        declaringType,
+                        constructors,
+                        ReadFieldMetadata(typeDef.GetFields()),
+                        ReadPropertyMetadata(typeDef.GetProperties()),
+                        methods,
+                        genericParameters: genericParameters,
+                        isAbstract: isAbstract,
+                        isSealed: isSealed
+                    );
+                    break;
+
+                case TypeKind.Struct:
+                    typeMetadata = new StructMetadata(
+                        name,
+                        @namespace,
+                        protectionLevel,
+                        declaringType,
+                        constructors,
+                        ReadFieldMetadata(typeDef.GetFields()),
+                        ReadPropertyMetadata(typeDef.GetProperties()),
+                        methods
+                    );
+                    break;
+
+                case TypeKind.Enum:
+                    var members = new List<EnumMemberMetadata>();
+                    PrimitiveTypeCode underlyingEnumType = PrimitiveTypeCode.Int32;
+                    foreach (FieldMetadata field in ReadFieldMetadata(typeDef.GetFields()).Values)
+                    {
+                        if (field.Name == DEFAULT_ENUM_MEMBER_NAME)
+                        {
+                            underlyingEnumType = LoadedTypes.GetPrimitiveTypeCode(Type.GetType(field.Type.FullName));
+                            continue;
+                        }
+
+                        members.Add(new EnumMemberMetadata(field.Name));
+                    }
+
+                    typeMetadata = new EnumMetadata(
+                        name,
+                        @namespace,
+                        protectionLevel,
+                        declaringType,
+                        underlyingEnumType,
+                        members.ToImmutableArray()
+                    );
+                    break;
+
+                default:
+                    throw new Exception(String.Format("Unknown type kind: '{0}'", GetBaseTypeKind(baseType)));
+            }
+
 
             // Now we have the type, we can add it to its nested types as a parent
             typeMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: typeMetadata);
 
             // Add the type to the cache in case we get a reference to it later
             // Since this occurs after the nested type assignment, full name should work properly
-            if (!_typeMetadataCache.ContainsKey(declaringType.FullName))
+            if (declaringType != null && !_typeMetadataCache.ContainsKey(declaringType.FullName))
             {
                 _typeMetadataCache.Add(typeMetadata.FullName, typeMetadata);
             }
@@ -380,6 +435,25 @@ namespace MetadataAnalysis
             }
         }
 
+        private IImmutableList<GenericParameterMetadata> ReadGenericParameters(
+            IEnumerable<GenericParameterHandle> genericParameterHandles)
+        {
+            var uninstantiatedParameters = new List<GenericParameterMetadata>();
+            foreach (GenericParameterHandle gpHandle in genericParameterHandles)
+            {
+                GenericParameter genericParameter = _mdReader.GetGenericParameter(gpHandle);
+
+                var genericParameterMetadata = new GenericParameterMetadata(
+                    _mdReader.GetString(genericParameter.Name),
+                    genericParameter.Attributes
+                );
+
+                uninstantiatedParameters.Add(genericParameterMetadata);
+            }
+
+            return uninstantiatedParameters.ToImmutableArray();
+        }
+
         /// <summary>
         /// Read the metadata information of a collection of field handles.
         /// </summary>
@@ -397,6 +471,7 @@ namespace MetadataAnalysis
                 }
 
                 FieldDefinition fieldDef = _mdReader.GetFieldDefinition(fdHandle);
+
                 // TODO: Decode the field signature
                 var fieldMetadata = new FieldMetadata(
                     null,
@@ -432,6 +507,77 @@ namespace MetadataAnalysis
             ReadMethodMetadata(IEnumerable<MethodDefinitionHandle> methodHandles)
         {
             return (null, null);
+        }
+
+        /// <summary>
+        /// Read the custom attributes pointed to by a custom attribute handle collection.
+        /// </summary>
+        /// <param name="customAttributeHandles">The handles for custom attributes to be read.</param>
+        /// <returns>An immutable list of metadata objects describing the custom attributes in the handle collection.</returns>
+        private IImmutableList<CustomAttributeMetadata> ReadCustomAttributes(
+            IEnumerable<CustomAttributeHandle> customAttributeHandles)
+        {
+            var customAttributes = new List<CustomAttributeMetadata>();
+            var typeProvider = new CustomAttributeTypeMetadataProvider(this);
+
+            foreach (var customAttributeHandle in customAttributeHandles)
+            {
+                CustomAttribute customAttribute = _mdReader.GetCustomAttribute(customAttributeHandle);
+                TypeMetadata customAttributeType = GetCustomAttributeFromCtor(customAttribute.Constructor);
+                CustomAttributeValue<TypeMetadata> customAttributeValue = customAttribute.DecodeValue<TypeMetadata>(typeProvider);
+
+                var customAttributeMetadata = new CustomAttributeMetadata(
+                    customAttributeType,
+                    customAttributeValue.NamedArguments.ToImmutableDictionary(na => na.Name),
+                    customAttributeValue.FixedArguments.ToImmutableArray()
+                );
+                customAttributes.Add(customAttributeMetadata);
+            }
+
+            return customAttributes.ToImmutableArray();
+        }
+
+        /// <summary>
+        /// Get the custom attribute metadata from a handle to one of its constructors.
+        /// </summary>
+        /// <param name="ctorHandle">A constructor handle for the custom attribute to be read.</param>
+        /// <returns>A metadata object describing the custom attribute to which the constructor belongs.</returns>
+        private TypeMetadata GetCustomAttributeFromCtor(EntityHandle ctorHandle)
+        {
+            switch (ctorHandle.Kind)
+            {
+                case HandleKind.MemberReference:
+                    MemberReference caCtor = _mdReader.GetMemberReference((MemberReferenceHandle)ctorHandle);
+                    return GetTypeFromEntityHandle(caCtor.Parent);
+
+                default:
+                    throw new Exception($"Unhandled handle kind: '{ctorHandle.Kind}'");
+            }
+        }
+
+        /// <summary>
+        /// Get a type metadata object from an entity handle known to refer to a type.
+        /// </summary>
+        /// <param name="typeHandle">An entity handle referring to a type.</param>
+        /// <returns>A metadata object describing the type referred to by the handle.</returns>
+        private TypeMetadata GetTypeFromEntityHandle(EntityHandle typeHandle)
+        {
+            switch (typeHandle.Kind)
+            {
+                case HandleKind.TypeDefinition:
+                    // TODO: Make this work with nested types?
+                    TypeDefinition typeDefinition = _mdReader.GetTypeDefinition((TypeDefinitionHandle)typeHandle);
+                    return ReadTypeMetadata(typeDefinition);
+
+                case HandleKind.TypeReference:
+                    TypeReference typeReference = _mdReader.GetTypeReference((TypeReferenceHandle)typeHandle);
+                    string fullTypeName = GetFullTypeName(typeReference);
+                    TryGetCachedType(fullTypeName, out TypeMetadata typeMetadata);
+                    return typeMetadata;
+
+                default:
+                    throw new Exception($"Unhandled handle kind: '{typeHandle.Kind}'");
+            }
         }
 
         /// <summary>
@@ -525,6 +671,26 @@ namespace MetadataAnalysis
             return (int)(typeAttributes & TypeAttributes.Sealed) != 0;
         }
 
+        private TypeKind GetBaseTypeKind(TypeMetadata baseType)
+        {
+            if (baseType == null || baseType == LoadedTypes.ObjectTypeMetadata)
+            {
+                return TypeKind.Class;
+            }
+
+            if (baseType == LoadedTypes.ValueTypeMetadata)
+            {
+                return TypeKind.Struct;
+            }
+
+            if (baseType == LoadedTypes.EnumTypeMetadata)
+            {
+                return TypeKind.Enum;
+            }
+
+            return GetBaseTypeKind(baseType.BaseType);
+        }
+
         /// <summary>
         /// Search the type caches for a given type by full name.
         /// </summary>
@@ -570,7 +736,7 @@ namespace MetadataAnalysis
                 typeNamespace = _mdReader.GetString(typeReference.Namespace);
             }
 
-            return GetFullTypeName(typeName, typeNamespace);
+            return GetFullTypeName(typeNamespace, typeName);
         }
 
         /// <summary>

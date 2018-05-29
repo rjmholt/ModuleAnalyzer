@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 namespace MetadataAnalysis.Metadata
 {
@@ -18,11 +19,43 @@ namespace MetadataAnalysis.Metadata
         /// </summary>
         private static ConcurrentDictionary<Type, TypeMetadata> s_typeMetadataCache;
 
+        private static ConcurrentDictionary<Type, PrimitiveTypeCode> s_primitiveTypeCodes;
+
         /// <summary>
         /// Initialize the loaded type cache with common primitive types.
         /// </summary>
         static LoadedTypes()
         {
+            // Primitive types to preload into both a correspondance table
+            // with the PrimitiveTypeCode enum and also into the metadata cache
+            var primitiveTypeCodes = new Dictionary<Type, PrimitiveTypeCode>()
+            {
+                { typeof(Boolean),        PrimitiveTypeCode.Boolean        },
+                { typeof(Byte),           PrimitiveTypeCode.Byte           },
+                { typeof(Char),           PrimitiveTypeCode.Char           },
+                { typeof(Double),         PrimitiveTypeCode.Double         },
+                { typeof(Int16),          PrimitiveTypeCode.Int16          },
+                { typeof(Int32),          PrimitiveTypeCode.Int32          },
+                { typeof(Int64),          PrimitiveTypeCode.Int64          },
+                { typeof(IntPtr),         PrimitiveTypeCode.IntPtr         },
+                { typeof(Object),         PrimitiveTypeCode.Object         },
+                { typeof(SByte),          PrimitiveTypeCode.SByte          },
+                { typeof(Single),         PrimitiveTypeCode.Single         },
+                { typeof(String),         PrimitiveTypeCode.String         },
+                { typeof(TypedReference), PrimitiveTypeCode.TypedReference },
+                { typeof(UInt16),         PrimitiveTypeCode.UInt16         },
+                { typeof(UInt32),         PrimitiveTypeCode.UInt32         },
+                { typeof(UInt64),         PrimitiveTypeCode.UInt64         },
+                { typeof(UIntPtr),        PrimitiveTypeCode.UIntPtr        },
+                { typeof(void),           PrimitiveTypeCode.Void           }
+            };
+
+            s_primitiveTypeCodes = new ConcurrentDictionary<Type, PrimitiveTypeCode>();
+            foreach (KeyValuePair<Type, PrimitiveTypeCode> primitiveType in primitiveTypeCodes)
+            {
+                s_primitiveTypeCodes[primitiveType.Key] = primitiveType.Value;
+            }
+
             // Initialize the cache
             s_typeMetadataCache = new ConcurrentDictionary<Type, TypeMetadata>();
 
@@ -30,6 +63,7 @@ namespace MetadataAnalysis.Metadata
             Type objectType = typeof(object);
             Type valueType = typeof(ValueType);
             Type enumType = typeof(Enum);
+            Type typeType = typeof(Type);
 
             var objectTypeMetadata = new ClassMetadata(
                 objectType.Name,
@@ -89,6 +123,14 @@ namespace MetadataAnalysis.Metadata
             s_typeMetadataCache.TryAdd(objectType, objectTypeMetadata);
             s_typeMetadataCache.TryAdd(valueType, valueTypeMetadata);
             s_typeMetadataCache.TryAdd(enumType, enumTypeMetadata);
+
+            TypeTypeMetadata = LoadedTypes.FromType(typeof(Type));
+
+            // Add primitive types to the cache
+            foreach (Type primitiveType in primitiveTypeCodes.Keys)
+            {
+                FromType(primitiveType);
+            }
         }
 
         /// <summary>
@@ -106,6 +148,8 @@ namespace MetadataAnalysis.Metadata
         /// </summary>
         public static ClassMetadata EnumTypeMetadata { get; }
 
+        public static TypeMetadata TypeTypeMetadata { get; }
+
         /// <summary>
         /// Get a type metadata object from a system type object.
         /// </summary>
@@ -121,17 +165,32 @@ namespace MetadataAnalysis.Metadata
             }
 
             // We'll want the declaring type in any case
-            TypeMetadata declaringType = type.BaseType == null ? null : FromType(type.BaseType);
+            TypeMetadata declaringType = type.DeclaringType == null ? null : FromType(type.DeclaringType);
 
             // We differentiate based on what kind of type
             if (type.IsEnum)
             {
+                PrimitiveTypeCode underlyingEnumType = PrimitiveTypeCode.Int32;
+                var members = new List<EnumMemberMetadata>();
+                foreach (FieldInfo field in type.GetFields())
+                {
+                    if (field.Name == MetadataAnalyzer.DEFAULT_ENUM_MEMBER_NAME)
+                    {
+                        underlyingEnumType = GetPrimitiveTypeCode(field.FieldType);
+                        continue;
+                    }
+
+                    var enumMember = new EnumMemberMetadata(field.Name);
+                    members.Add(enumMember);
+                }
+
                 typeMetadata = new EnumMetadata(
                     type.Name,
                     type.Namespace,
                     GetTypeProtectionLevel(type),
                     declaringType,
-                    Enum.GetNames(type).ToImmutableArray()
+                    underlyingEnumType,
+                    members.ToImmutableArray()
                 );
             }
             else if (type.IsValueType)
@@ -162,8 +221,8 @@ namespace MetadataAnalysis.Metadata
                     GetFieldMetadata(type),
                     GetPropertyMetadata(type),
                     GetMethodMetadata(type),
-                    type.IsAbstract,
-                    type.IsSealed
+                    isAbstract: type.IsAbstract,
+                    isSealed: type.IsSealed
                 )
                 {
                     NestedTypes = GetNestedTypeMetadata(type)
@@ -197,6 +256,31 @@ namespace MetadataAnalysis.Metadata
 
             typeMetadata = FromType(type);
             return true;
+        }
+
+        public static TypeMetadata GetByName(string fullTypeName)
+        {
+            if (!TryFindByName(fullTypeName, out TypeMetadata typeMetadata))
+            {
+                throw new Exception($"Unable to find loaded type: '{fullTypeName}'");
+            }
+
+            return typeMetadata;
+        }
+
+        public static bool IsTypeLoaded(string fullTypeName)
+        {
+            return Type.GetType(fullTypeName) != null;
+        }
+
+        public static PrimitiveTypeCode GetPrimitiveTypeCode(Type type)
+        {
+            if (!s_primitiveTypeCodes.TryGetValue(type, out PrimitiveTypeCode typeCode))
+            {
+                throw new ArgumentException("Type is not a primitive type", nameof(type));
+            }
+
+            return typeCode;
         }
 
         /// <summary>

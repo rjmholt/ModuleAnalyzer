@@ -14,8 +14,9 @@ namespace MetadataAnalysis.Metadata
             IImmutableDictionary<string, FieldMetadata> fields,
             IImmutableDictionary<string, PropertyMetadata> properties,
             IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            bool isAbstract,
-            bool isSealed
+            IImmutableList<GenericParameterMetadata> genericParameters = null,
+            bool isAbstract = false,
+            bool isSealed = false
         ) : base(
             name,
             @namespace,
@@ -26,7 +27,8 @@ namespace MetadataAnalysis.Metadata
             constructors,
             fields,
             properties,
-            methods)
+            methods,
+            genericParameters)
         {
             IsAbstract = isAbstract;
             IsSealed = isSealed;

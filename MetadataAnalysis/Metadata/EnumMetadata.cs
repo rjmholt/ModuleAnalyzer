@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reflection.Metadata;
 using MetadataAnalysis.Metadata;
 
 namespace MetadataAnalysis.Metadata
@@ -10,7 +11,8 @@ namespace MetadataAnalysis.Metadata
             string @namespace,
             ProtectionLevel protectionLevel,
             TypeMetadata declaringType,
-            IImmutableList<string> members) :
+            PrimitiveTypeCode underlyingEnumType,
+            IImmutableList<EnumMemberMetadata> members) :
             base(
                 name,
                 @namespace,
@@ -23,9 +25,12 @@ namespace MetadataAnalysis.Metadata
                 ImmutableDictionary<string, PropertyMetadata>.Empty,
                 ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty)
         {
+            UnderlyingEnumType = underlyingEnumType;
             Members = members;
         }
 
-        public IImmutableList<string> Members { get; }
+        public IImmutableList<EnumMemberMetadata> Members { get; }
+
+        public PrimitiveTypeCode UnderlyingEnumType { get; }
     }
 }

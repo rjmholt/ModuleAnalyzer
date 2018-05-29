@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace MetadataAnalysis.Test
 {
@@ -363,6 +365,12 @@ namespace MetadataAnalysis.Test
         Three
     }
 
+    public enum TestByteEnum : byte
+    {
+        OneByte,
+        TwoByte,
+    }
+
     public struct TestStruct
     {
         public int num;
@@ -390,19 +398,28 @@ namespace MetadataAnalysis.Test
 
         }
 
-        public void ArrayOfArrayMethod(object[][][] objNestedArray)
+        public void JaggedArrayMethod(object[][][] objNestedArray)
         {
 
+        }
+        
+        public int RefArrayMethod(ref int[] intArr)
+        {
+            return intArr.Sum();
+        }
+
+        public float OutMultiArrayMethod(out FileInfo[,,] fileCube)
+        {
+            fileCube = null;
+            return 11.9f;
         }
 
         unsafe public void PointerMethod(int* objPtr)
         {
-
         }
 
         public void FuncPointerMethod(Func<bool, bool> boolFunc)
         {
-
         }
 
         public delegate void SignatureDelegate(int x);
