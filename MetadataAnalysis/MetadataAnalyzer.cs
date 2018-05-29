@@ -472,13 +472,15 @@ namespace MetadataAnalysis
 
                 FieldDefinition fieldDef = _mdReader.GetFieldDefinition(fdHandle);
 
-                // TODO: Decode the field signature
                 var fieldMetadata = new FieldMetadata(
-                    null,
                     _mdReader.GetString(fieldDef.Name),
                     ReadProtectionLevel(fieldDef.Attributes),
                     ReadStatic(fieldDef.Attributes)
-                );
+                )
+                {
+                    // TODO: Decode the field signature. This may be of the object's type itself...
+                    Type = null
+                };
                 fields.Add(fieldMetadata.Name, fieldMetadata);
             }
 

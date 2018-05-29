@@ -12,7 +12,8 @@ namespace MetadataAnalysis.Metadata
             ProtectionLevel protectionLevel,
             TypeMetadata declaringType,
             PrimitiveTypeCode underlyingEnumType,
-            IImmutableList<EnumMemberMetadata> members) :
+            IImmutableList<EnumMemberMetadata> members,
+            IImmutableList<CustomAttributeMetadata> customAttributes = null) :
             base(
                 name,
                 @namespace,
@@ -23,7 +24,8 @@ namespace MetadataAnalysis.Metadata
                 ImmutableArray<ConstructorMetadata>.Empty,
                 ImmutableDictionary<string, FieldMetadata>.Empty,
                 ImmutableDictionary<string, PropertyMetadata>.Empty,
-                ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty)
+                ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty,
+                customAttributes: customAttributes)
         {
             UnderlyingEnumType = underlyingEnumType;
             Members = members;

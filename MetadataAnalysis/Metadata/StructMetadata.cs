@@ -12,7 +12,9 @@ namespace MetadataAnalysis.Metadata
             IImmutableList<ConstructorMetadata> constructors,
             IImmutableDictionary<string, FieldMetadata> fields,
             IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods)
+            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
+            IImmutableList<GenericParameterMetadata> genericParameters = null,
+            IImmutableList<CustomAttributeMetadata> customAttributes = null)
             : base(
                 name,
                 @namespace,
@@ -23,7 +25,9 @@ namespace MetadataAnalysis.Metadata
                 constructors,
                 fields,
                 properties,
-                methods)
+                methods,
+                genericParameters,
+                customAttributes)
         {
         }
     }

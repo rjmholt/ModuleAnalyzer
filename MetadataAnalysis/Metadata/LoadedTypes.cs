@@ -180,7 +180,8 @@ namespace MetadataAnalysis.Metadata
                         continue;
                     }
 
-                    var enumMember = new EnumMemberMetadata(field.Name);
+                    IImmutableList<CustomAttributeMetadata> customAttributes = GetCustomAttributes(field.CustomAttributes);
+                    var enumMember = new EnumMemberMetadata(field.Name, customAttributes);
                     members.Add(enumMember);
                 }
 
@@ -192,6 +193,12 @@ namespace MetadataAnalysis.Metadata
                     underlyingEnumType,
                     members.ToImmutableArray()
                 );
+
+                // Now that the type has been constructed, add it as the enum field type
+                foreach (EnumMemberMetadata enumMember in members)
+                {
+                    enumMember.Type = typeMetadata;
+                }
             }
             else if (type.IsValueType)
             {
@@ -351,6 +358,58 @@ namespace MetadataAnalysis.Metadata
         private static IImmutableDictionary<string, IImmutableList<MethodMetadata>> GetMethodMetadata(Type type)
         {
             return null;
+        }
+
+        private static IImmutableList<CustomAttributeMetadata> GetCustomAttributes(IEnumerable<CustomAttributeData> customAttributeData)
+        {
+            var customAttributes = new List<CustomAttributeMetadata>();
+            foreach (CustomAttributeData customAttribute in customAttributeData)
+            {
+                var customAttributeMetadata = new CustomAttributeMetadata(
+                    FromType(customAttribute.AttributeType),
+                    GetNamedArguments(customAttribute),
+                    GetPositionalArguments(customAttribute)
+                );
+
+                customAttributes.Add(customAttributeMetadata);
+            }
+
+            return customAttributes.ToImmutableArray();
+        }
+
+        private static IImmutableDictionary<string, CustomAttributeNamedArgument<TypeMetadata>> 
+            GetNamedArguments(CustomAttributeData customAttribute)
+        {
+            var namedArgs = new Dictionary<string, CustomAttributeNamedArgument<TypeMetadata>>();
+            foreach (CustomAttributeNamedArgument namedArg in customAttribute.NamedArguments)
+            {
+                var na = new CustomAttributeNamedArgument<TypeMetadata>(
+                    namedArg.MemberName,
+                    namedArg.IsField ? CustomAttributeNamedArgumentKind.Field : CustomAttributeNamedArgumentKind.Property,
+                    FromType(namedArg.TypedValue.ArgumentType),
+                    namedArg.TypedValue.Value
+                );
+
+                namedArgs.Add(na.Name, na);
+            }
+
+            return namedArgs.ToImmutableDictionary();
+        }
+
+        private static IImmutableList<CustomAttributeTypedArgument<TypeMetadata>> GetPositionalArguments(CustomAttributeData customAttribute)
+        {
+            var positionalArguments = new List<CustomAttributeTypedArgument<TypeMetadata>>();
+            foreach (CustomAttributeTypedArgument positionalArg in customAttribute.ConstructorArguments)
+            {
+                var pa = new CustomAttributeTypedArgument<TypeMetadata>(
+                    FromType(positionalArg.ArgumentType),
+                    positionalArg.Value
+                );
+
+                positionalArguments.Add(pa);
+            }
+
+            return positionalArguments.ToImmutableArray();
         }
 
         /// <summary>

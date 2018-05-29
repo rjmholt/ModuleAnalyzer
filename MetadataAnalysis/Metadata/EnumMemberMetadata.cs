@@ -1,12 +1,14 @@
+using System.Collections.Immutable;
+
 namespace MetadataAnalysis.Metadata
 {
-    public class EnumMemberMetadata
+    public class EnumMemberMetadata : FieldMetadata
     {
-        public EnumMemberMetadata(string name)
+        public EnumMemberMetadata(
+            string name,
+            IImmutableList<CustomAttributeMetadata> customAttributes = null)
+            : base(name, ProtectionLevel.Public, isStatic: true, customAttributes: customAttributes)
         {
-            Name = name;
         }
-
-        public string Name { get; }
     }
 }

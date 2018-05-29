@@ -16,7 +16,8 @@ namespace MetadataAnalysis.Metadata
             IImmutableDictionary<string, FieldMetadata> fields,
             IImmutableDictionary<string, PropertyMetadata> properties,
             IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null
+            IImmutableList<GenericParameterMetadata> genericParameters = null,
+            IImmutableList<CustomAttributeMetadata> customAttributes = null
         )
         {
             Name = name;
@@ -29,6 +30,7 @@ namespace MetadataAnalysis.Metadata
             Properties = properties;
             Methods = methods;
             GenericParameters = genericParameters ?? ImmutableArray<GenericParameterMetadata>.Empty;
+            CustomAttributes = customAttributes ?? ImmutableArray<CustomAttributeMetadata>.Empty;
         }
 
         public string Name { get; }
@@ -72,5 +74,7 @@ namespace MetadataAnalysis.Metadata
         public IImmutableDictionary<string, TypeMetadata> NestedTypes { get; internal set; }
 
         public IImmutableList<GenericParameterMetadata> GenericParameters { get; }
+
+        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
     }
 }

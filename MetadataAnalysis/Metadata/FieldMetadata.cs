@@ -1,27 +1,20 @@
 
+using System.Collections.Immutable;
+
 namespace MetadataAnalysis.Metadata
 {
-    public class FieldMetadata
+    public class FieldMetadata : MemberMetadata
     {
         public FieldMetadata(
-            TypeMetadata type,
             string name,
             ProtectionLevel protectionLevel,
-            bool isStatic
-        )
+            bool isStatic = false,
+            IImmutableList<GenericParameterMetadata> genericParameters = null,
+            IImmutableList<CustomAttributeMetadata> customAttributes = null)
+            : base(name, protectionLevel, isStatic, genericParameters, customAttributes)
         {
-            Type = type;
-            Name = name;
-            ProtectionLevel = protectionLevel;
-            IsStatic = isStatic;
         }
 
-        public TypeMetadata Type { get; }
-
-        public string Name { get; }
-
-        public ProtectionLevel ProtectionLevel { get; }
-
-        public bool IsStatic { get; }
+        public TypeMetadata Type { get; internal set; }
     }
 }
