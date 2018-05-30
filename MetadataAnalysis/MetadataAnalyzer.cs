@@ -494,7 +494,61 @@ namespace MetadataAnalysis
         /// <returns>a dictionary of the property metadata objects, keyed by property name.</returns>
         private IImmutableDictionary<string, PropertyMetadata> ReadPropertyMetadata(IEnumerable<PropertyDefinitionHandle> propertyHandles)
         {
-            return null;
+            var properties = new Dictionary<string, PropertyMetadata>();
+            foreach (PropertyDefinitionHandle propHandle in propertyHandles)
+            {
+                PropertyDefinition propertyDef = _mdReader.GetPropertyDefinition(propHandle);
+                PropertyAccessors accessors = propertyDef.GetAccessors();
+
+                string propertyName = _mdReader.GetString(propertyDef.Name);
+
+                PropertyGetterMetadata getter = null;
+                if (!accessors.Getter.IsNil)
+                {
+                    MethodDefinition getterDef = _mdReader.GetMethodDefinition(accessors.Getter);
+
+                    getter = new PropertyGetterMetadata(
+                        propertyName,
+                        ReadProtectionLevel(getterDef.Attributes),
+                        ReadStatic(getterDef.Attributes)
+                    );
+                }
+
+                PropertySetterMetadata setter = null;
+                if (!accessors.Setter.IsNil)
+                {
+                    MethodDefinition setterDef = _mdReader.GetMethodDefinition(accessors.Setter);
+
+                    setter = new PropertySetterMetadata(
+                        propertyName,
+                        ReadProtectionLevel(setterDef.Attributes),
+                        ReadStatic(setterDef.Attributes)
+                    );
+                }
+
+                bool isPropertyStatic = false;
+                if (getter != null)
+                {
+                    isPropertyStatic |= getter.IsStatic;
+                }
+                if (setter != null)
+                {
+                    isPropertyStatic &= setter.IsStatic;
+                }
+
+                var propertyMetadata = new PropertyMetadata(
+                    propertyName,
+                    null, // TODO: Get the type signature of the method
+                    GetHighestProtectionLevel(getter?.ProtectionLevel ?? ProtectionLevel.Private, setter?.ProtectionLevel ?? ProtectionLevel.Private),
+                    getter,
+                    setter,
+                    isStatic: isPropertyStatic
+                );
+
+                properties.Add(propertyMetadata.Name, propertyMetadata);
+            }
+
+            return properties.ToImmutableDictionary();
         }
 
         /// <summary>
@@ -643,6 +697,34 @@ namespace MetadataAnalysis
             }
         }
 
+        private ProtectionLevel ReadProtectionLevel(MethodAttributes methodAttributes)
+        {
+            switch (methodAttributes & MethodAttributes.MemberAccessMask)
+            {
+                case MethodAttributes.Public:
+                    return ProtectionLevel.Public;
+
+                case MethodAttributes.Assembly:
+                case MethodAttributes.FamORAssem:
+                    return ProtectionLevel.Internal;
+
+                case MethodAttributes.Family:
+                case MethodAttributes.FamANDAssem:
+                    return ProtectionLevel.Protected;
+
+                case MethodAttributes.Private:
+                    return ProtectionLevel.Private;
+                
+                default:
+                    throw new Exception($"Unknown protection level: '{methodAttributes & MethodAttributes.MemberAccessMask}'");
+            }
+        }
+
+        private ProtectionLevel GetHighestProtectionLevel(ProtectionLevel p1, ProtectionLevel p2)
+        {
+            return p1 >= p2 ? p1 : p2;
+        }
+
         /// <summary>
         /// Read whether a field is static based on its field attribute flags.
         /// </summary>
@@ -651,6 +733,11 @@ namespace MetadataAnalysis
         private bool ReadStatic(FieldAttributes fieldAttributes)
         {
             return (int)(fieldAttributes & FieldAttributes.Static) != 0;
+        }
+
+        private bool ReadStatic(MethodAttributes methodAttributes)
+        {
+            return (int)(methodAttributes & MethodAttributes.Static) != 0;
         }
 
         /// <summary>

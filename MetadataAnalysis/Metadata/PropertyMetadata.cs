@@ -4,16 +4,26 @@ namespace MetadataAnalysis.Metadata
 {
     public class PropertyMetadata : MemberMetadata
     {
-        protected PropertyMetadata(
+        public PropertyMetadata(
             string name,
+            TypeMetadata type,
             ProtectionLevel protectionLevel,
+            PropertyGetterMetadata getter,
+            PropertySetterMetadata setter,
             bool isStatic = false,
             IImmutableList<GenericParameterMetadata> genericParameters = null,
             IImmutableList<CustomAttributeMetadata> customAttributes = null)
             : base(name, protectionLevel, isStatic, genericParameters, customAttributes)
         {
+            Type = type;
+            Getter = getter;
+            Setter = setter;
         }
 
         public TypeMetadata Type { get; internal set; }
+
+        public PropertyGetterMetadata Getter { get; }
+
+        public PropertySetterMetadata Setter { get; }
     }
 }
