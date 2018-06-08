@@ -5,8 +5,9 @@ using System.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
+using MetadataAnalysis.Metadata;
 
-namespace MetadataAnalysis.Metadata
+namespace MetadataAnalysis
 {
     /// <summary>
     /// Static class to deal with getting and caching type metadata from
@@ -124,7 +125,8 @@ namespace MetadataAnalysis.Metadata
             s_typeMetadataCache.TryAdd(valueType, valueTypeMetadata);
             s_typeMetadataCache.TryAdd(enumType, enumTypeMetadata);
 
-            TypeTypeMetadata = LoadedTypes.FromType(typeof(Type));
+            TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
+            ArrayTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(System.Array));
 
             // Add primitive types to the cache
             foreach (Type primitiveType in primitiveTypeCodes.Keys)
@@ -148,7 +150,9 @@ namespace MetadataAnalysis.Metadata
         /// </summary>
         public static ClassMetadata EnumTypeMetadata { get; }
 
-        public static TypeMetadata TypeTypeMetadata { get; }
+        public static ClassMetadata TypeTypeMetadata { get; }
+
+        public static ClassMetadata ArrayTypeMetadata { get; }
 
         /// <summary>
         /// Get a type metadata object from a system type object.
@@ -165,7 +169,7 @@ namespace MetadataAnalysis.Metadata
             }
 
             // We'll want the declaring type in any case
-            TypeMetadata declaringType = type.DeclaringType == null ? null : FromType(type.DeclaringType);
+            DefinedTypeMetadata declaringType = type.DeclaringType == null ? null : (DefinedTypeMetadata)FromType(type.DeclaringType);
 
             // We differentiate based on what kind of type
             if (type.IsEnum)
@@ -417,12 +421,12 @@ namespace MetadataAnalysis.Metadata
         /// </summary>
         /// <param name="type">the type to get the nested types of.</param>
         /// <returns>a dictionary of nested types in the given type, keyed by name.</returns>
-        private static IImmutableDictionary<string, TypeMetadata> GetNestedTypeMetadata(Type type)
+        private static IImmutableDictionary<string, DefinedTypeMetadata> GetNestedTypeMetadata(Type type)
         {
-            var nestedTypes = new Dictionary<string, TypeMetadata>();
+            var nestedTypes = new Dictionary<string, DefinedTypeMetadata>();
             foreach (Type nestedType in type.GetNestedTypes())
             {
-                TypeMetadata nestedTypeMetadata = FromType(nestedType);
+                DefinedTypeMetadata nestedTypeMetadata = (DefinedTypeMetadata)FromType(nestedType);
                 nestedTypes.Add(nestedType.Name, nestedTypeMetadata);
             }
             return nestedTypes.ToImmutableDictionary();

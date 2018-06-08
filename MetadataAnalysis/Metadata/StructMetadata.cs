@@ -1,14 +1,15 @@
 using System.Collections.Immutable;
+using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata
 {
-    public class StructMetadata : TypeMetadata
+    public class StructMetadata : DefinedTypeMetadata
     {
         public StructMetadata(
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
-            TypeMetadata declaringType,
+            DefinedTypeMetadata declaringType,
             IImmutableList<ConstructorMetadata> constructors,
             IImmutableDictionary<string, FieldMetadata> fields,
             IImmutableDictionary<string, PropertyMetadata> properties,
@@ -29,6 +30,21 @@ namespace MetadataAnalysis.Metadata
                 genericParameters,
                 customAttributes)
         {
+        }
+
+        internal StructMetadata InstantiateGeneric(NameableTypeMetadata parameterType, int index)
+        {
+            return new StructMetadata(
+                Name,
+                Namespace,
+                ProtectionLevel,
+                DeclaringType,
+                Constructors,
+                Fields,
+                Properties,
+                Methods,
+                InstantiateGenericListAtIndex(parameterType, index),
+                CustomAttributes);
         }
     }
 }

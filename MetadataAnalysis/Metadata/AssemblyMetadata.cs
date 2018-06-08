@@ -14,7 +14,7 @@ namespace MetadataAnalysis.Metadata
             ImmutableArray<byte> publicKey,
             AssemblyHashAlgorithm hashAlgorithm,
             IImmutableList<CustomAttributeMetadata> customAttributes,
-            IImmutableDictionary<string, TypeMetadata> typeDefinitions
+            IImmutableDictionary<string, DefinedTypeMetadata> typeDefinitions
         )
         {
             Name = name;
@@ -41,6 +41,6 @@ namespace MetadataAnalysis.Metadata
 
         public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
 
-        public IImmutableDictionary<string, TypeMetadata> TypeDefinitions { get; }
+        public IImmutableDictionary<string, DefinedTypeMetadata> TypeDefinitions { get; }
     }
 }

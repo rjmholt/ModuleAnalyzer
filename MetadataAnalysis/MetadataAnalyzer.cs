@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using MetadataAnalysis.Metadata;
+using MetadataAnalysis.Metadata.Generic;
 using MetadataAnalysis.Metadata.TypeProviders;
 
 namespace MetadataAnalysis
@@ -117,7 +118,7 @@ namespace MetadataAnalysis
         /// a dictionary of the metadata of all types defined in the wrapped assembly,
         /// keyed by the full name of each type.
         /// </returns>
-        public IImmutableDictionary<string, TypeMetadata> GetAllTypeDefinitions()
+        public IImmutableDictionary<string, DefinedTypeMetadata> GetAllTypeDefinitions()
         {
             return ReadTypesFromHandles(_mdReader.TypeDefinitions);
         }
@@ -130,7 +131,7 @@ namespace MetadataAnalysis
         /// a dictionary of the metadata of all types defined in the wrapped assembly matching the
         /// given names, keyed by the full type names.
         /// </returns>
-        public IImmutableDictionary<string, TypeMetadata> GetTypeDefinitions(IReadOnlyCollection<string> fullTypeNames)
+        public IImmutableDictionary<string, DefinedTypeMetadata> GetTypeDefinitions(IReadOnlyCollection<string> fullTypeNames)
         {
             // If the parameter is bad, throw an exception
             if (fullTypeNames == null)
@@ -151,7 +152,7 @@ namespace MetadataAnalysis
             // Prevent needless work if there's nothing to process
             if (fullTypeNames.Count == 0)
             {
-                return ImmutableDictionary<string, TypeMetadata>.Empty;
+                return ImmutableDictionary<string, DefinedTypeMetadata>.Empty;
             }
             
             // Make a set of all the types we're looking for
@@ -159,7 +160,7 @@ namespace MetadataAnalysis
             var typeNameSet = fullTypeNames.ToHashSet();
 
             // Go through the types in the DLL until we have all the ones we're looking for
-            var typeDefinitions = new Dictionary<string, TypeMetadata>();
+            var typeDefinitions = new Dictionary<string, DefinedTypeMetadata>();
             foreach (TypeDefinitionHandle tdHandle in _mdReader.TypeDefinitions)
             {
                 // If there are no more types to look for, we're done
@@ -185,7 +186,7 @@ namespace MetadataAnalysis
                         continue;
                     }
 
-                    TypeMetadata typeMetadata = ReadTypeMetadata(typeDef);
+                    DefinedTypeMetadata typeMetadata = ReadTypeMetadata(typeDef);
                     typeDefinitions.Add(typeMetadata.FullName, typeMetadata);
                     // Reduce the search set since we found something
                     typeNameSet.Remove(fullTypeName);
@@ -200,7 +201,7 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="fullTypeName">the full name of the type to find.</param>
         /// <returns>the metadata for the named type, or null if it's not found.</returns>
-        public TypeMetadata GetTypeDefinition(string fullTypeName)
+        public DefinedTypeMetadata GetTypeDefinition(string fullTypeName)
         {
             // A type can't have a whitespace name
             if (String.IsNullOrWhiteSpace(fullTypeName))
@@ -239,11 +240,11 @@ namespace MetadataAnalysis
         /// <param name="tdHandles">the type definition handles to read into metadata objects.</param>
         /// <param name="declaringType">the type declaring the types we are reading, if any.</param>
         /// <returns>a dictionary of the types we are reading, keyed by the full names of types.</returns>
-        internal IImmutableDictionary<string, TypeMetadata> ReadTypesFromHandles(
+        internal IImmutableDictionary<string, DefinedTypeMetadata> ReadTypesFromHandles(
             IEnumerable<TypeDefinitionHandle> tdHandles,
-            TypeMetadata declaringType = null)
+            DefinedTypeMetadata declaringType = null)
         {
-            var typeDefs = new Dictionary<string, TypeMetadata>();
+            var typeDefs = new Dictionary<string, DefinedTypeMetadata>();
             foreach (TypeDefinitionHandle tdHandle in tdHandles)
             {
                 // Avoid bad type def handles. This should not occur though.
@@ -260,7 +261,7 @@ namespace MetadataAnalysis
                     continue;
                 }
 
-                TypeMetadata typeMetadata = ReadTypeMetadata(typeDef, declaringType);
+                DefinedTypeMetadata typeMetadata = ReadTypeMetadata(typeDef, declaringType);
                 typeDefs.Add(typeMetadata.FullName, typeMetadata);
             }
             return typeDefs.ToImmutableDictionary();
@@ -272,7 +273,7 @@ namespace MetadataAnalysis
         /// <param name="typeDef">the type definition entry from the metadata reader</param>
         /// <param name="declaringType">the parent type of the type definition being read</param>
         /// <returns>the type metadata object describing the type definition read in</returns>
-        internal TypeMetadata ReadTypeMetadata(TypeDefinition typeDef, TypeMetadata declaringType = null)
+        internal DefinedTypeMetadata ReadTypeMetadata(TypeDefinition typeDef, DefinedTypeMetadata declaringType = null)
         {
             string name = _mdReader.GetString(typeDef.Name);
             string @namespace = _mdReader.GetString(typeDef.Namespace);
@@ -291,7 +292,7 @@ namespace MetadataAnalysis
             // Look for the type in the cache first to see if we know it
             if (_typeMetadataCache.ContainsKey(fullTypeName))
             {
-                return _typeMetadataCache[fullTypeName];
+                return (DefinedTypeMetadata)_typeMetadataCache[fullTypeName];
             }
 
             ProtectionLevel protectionLevel = ReadProtectionLevel(typeDef.Attributes);
@@ -308,7 +309,7 @@ namespace MetadataAnalysis
 
             IImmutableList<CustomAttributeMetadata> customAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
 
-            TypeMetadata typeMetadata;
+            DefinedTypeMetadata typeMetadata;
             switch (GetBaseTypeKind(baseType))
             {
                 case TypeKind.Class:
@@ -443,10 +444,21 @@ namespace MetadataAnalysis
             {
                 GenericParameter genericParameter = _mdReader.GetGenericParameter(gpHandle);
 
-                var genericParameterMetadata = new GenericParameterMetadata(
-                    _mdReader.GetString(genericParameter.Name),
-                    genericParameter.Attributes
-                );
+                string parameterName = _mdReader.GetString(genericParameter.Name);
+
+                GenericParameterMetadata genericParameterMetadata;
+                if (TryGetCachedType(parameterName, out TypeMetadata typeMetadata))
+                {
+                    genericParameterMetadata = new ConcreteGenericParameterMetadata(
+                        (NameableTypeMetadata)typeMetadata,
+                        genericParameter.Attributes);
+                }
+                else
+                {
+                    genericParameterMetadata = new UninstantiatedGenericParameterMetadata(
+                        parameterName,
+                        genericParameter.Attributes);
+                }
 
                 uninstantiatedParameters.Add(genericParameterMetadata);
             }

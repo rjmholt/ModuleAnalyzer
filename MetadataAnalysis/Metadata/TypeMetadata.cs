@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata
 {
@@ -11,7 +14,6 @@ namespace MetadataAnalysis.Metadata
             TypeKind typeKind,
             ProtectionLevel protectionLevel,
             TypeMetadata baseType,
-            TypeMetadata declaringType,
             IImmutableList<ConstructorMetadata> constructors,
             IImmutableDictionary<string, FieldMetadata> fields,
             IImmutableDictionary<string, PropertyMetadata> properties,
@@ -25,7 +27,6 @@ namespace MetadataAnalysis.Metadata
             TypeKind = TypeKind;
             ProtectionLevel = protectionLevel;
             BaseType = baseType;
-            DeclaringType = declaringType;
             Fields = fields;
             Properties = properties;
             Methods = methods;
@@ -37,15 +38,10 @@ namespace MetadataAnalysis.Metadata
 
         public string Namespace { get; }
 
-        public string FullName
+        public virtual string FullName
         {
             get
             {
-                if (DeclaringType != null)
-                {
-                    return DeclaringType.FullName + "." + Name;
-                }
-
                 if (String.IsNullOrEmpty(Namespace))
                 {
                     return Name;
@@ -61,8 +57,6 @@ namespace MetadataAnalysis.Metadata
 
         public TypeMetadata BaseType { get; }
 
-        public TypeMetadata DeclaringType { get; }
-
         public IImmutableList<ConstructorMetadata> Constructors { get; }
 
         public IImmutableDictionary<string, FieldMetadata> Fields { get; }
@@ -71,10 +65,37 @@ namespace MetadataAnalysis.Metadata
 
         public IImmutableDictionary<string, IImmutableList<MethodMetadata>> Methods { get; }
 
-        public IImmutableDictionary<string, TypeMetadata> NestedTypes { get; internal set; }
-
         public IImmutableList<GenericParameterMetadata> GenericParameters { get; }
 
         public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
+
+        public bool IsGeneric { get => GenericParameters.Any(); }
+
+        public bool IsFullyInstantiated()
+        {
+            foreach (GenericParameterMetadata genericParameter in GenericParameters)
+            {
+                if (genericParameter is UninstantiatedGenericParameterMetadata)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        protected IImmutableList<GenericParameterMetadata> InstantiateGenericListAtIndex(
+            NameableTypeMetadata parameterType,
+            int index)
+        {
+            if (GenericParameters[index] is ConcreteGenericParameterMetadata)
+            {
+                throw new ArgumentException("Cannot instantiate concrete generic parameter");
+            }
+
+            List<GenericParameterMetadata> genericParameters = GenericParameters.ToList();
+            genericParameters[index] = new ConcreteGenericParameterMetadata(parameterType, GenericParameters[index].Attributes);
+            return genericParameters.ToImmutableArray();
+        }
     }
 }

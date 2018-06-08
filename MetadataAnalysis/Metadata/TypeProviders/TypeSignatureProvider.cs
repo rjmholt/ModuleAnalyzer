@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
+using MetadataAnalysis.Metadata.Signature;
 
 namespace MetadataAnalysis.Metadata.TypeProviders
 {
@@ -23,7 +24,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetByReferenceType(TypeMetadata elementType)
         {
-            throw new NotImplementedException();
+            return new ByRefTypeMetadata((NameableTypeMetadata)elementType);
         }
 
         public TypeMetadata GetFunctionPointerType(MethodSignature<TypeMetadata> signature)
@@ -48,22 +49,22 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetModifiedType(TypeMetadata modifier, TypeMetadata unmodifiedType, bool isRequired)
         {
-            throw new NotImplementedException();
+            return new VolatileTypeMetadata((NameableTypeMetadata)unmodifiedType);
         }
 
         public TypeMetadata GetPinnedType(TypeMetadata elementType)
         {
-            throw new NotImplementedException();
+            return new PinnedTypeMetadata((NameableTypeMetadata)elementType);
         }
 
         public TypeMetadata GetPointerType(TypeMetadata elementType)
         {
-            throw new NotImplementedException();
+            return new PointerTypeMetadata((NameableTypeMetadata)elementType);
         }
 
         public TypeMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
         {
-            throw new NotImplementedException();
+            return _customAttributeMetadataProvider.GetPrimitiveType(typeCode);
         }
 
         public TypeMetadata GetSZArrayType(TypeMetadata elementType)
@@ -73,12 +74,12 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
         {
-            throw new NotImplementedException();
+            return _customAttributeMetadataProvider.GetTypeFromDefinition(reader, handle, rawTypeKind);
         }
 
         public TypeMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
         {
-            throw new NotImplementedException();
+            return _customAttributeMetadataProvider.GetTypeFromReference(reader, handle, rawTypeKind);
         }
 
         public TypeMetadata GetTypeFromSpecification(MetadataReader reader, TypeMetadataGenericContext genericContext, TypeSpecificationHandle handle, byte rawTypeKind)

@@ -1,5 +1,6 @@
 
 using System.Collections.Immutable;
+using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata
 {

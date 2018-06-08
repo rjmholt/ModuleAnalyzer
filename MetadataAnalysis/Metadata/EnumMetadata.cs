@@ -4,13 +4,13 @@ using MetadataAnalysis.Metadata;
 
 namespace MetadataAnalysis.Metadata
 {
-    public class EnumMetadata : TypeMetadata
+    public class EnumMetadata : DefinedTypeMetadata
     {
         public EnumMetadata(
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
-            TypeMetadata declaringType,
+            DefinedTypeMetadata declaringType,
             PrimitiveTypeCode underlyingEnumType,
             IImmutableList<EnumMemberMetadata> members,
             IImmutableList<CustomAttributeMetadata> customAttributes = null) :

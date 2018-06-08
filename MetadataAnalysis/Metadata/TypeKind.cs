@@ -7,6 +7,8 @@ namespace MetadataAnalysis.Metadata
     {
         Class,
         Struct,
-        Enum
+        Enum,
+        ByReferenceType,
+        ArrayType,
     }
 }
