@@ -11,27 +11,15 @@ namespace MetadataAnalysis.Metadata
             ProtectionLevel protectionLevel,
             TypeMetadata baseType,
             DefinedTypeMetadata declaringType,
-            IImmutableList<ConstructorMetadata> constructors,
-            IImmutableDictionary<string, FieldMetadata> fields,
-            IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null,
             bool isAbstract = false,
-            bool isSealed = false
-        ) : base(
-            name,
-            @namespace,
-            TypeKind.Class,
-            protectionLevel,
-            baseType,
-            declaringType,
-            constructors,
-            fields,
-            properties,
-            methods,
-            genericParameters,
-            customAttributes)
+            bool isSealed = false)
+                : base(
+                    name,
+                    @namespace,
+                    TypeKind.Class,
+                    protectionLevel,
+                    baseType,
+                    declaringType)
         {
             IsAbstract = isAbstract;
             IsSealed = isSealed;
@@ -49,20 +37,22 @@ namespace MetadataAnalysis.Metadata
 
         public bool IsSealed { get; }
 
-        public ClassMetadata InstantiateGeneric(NameableTypeMetadata parameterType, int index)
+        internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
         {
             return new ClassMetadata(
                 Name,
                 Namespace,
                 ProtectionLevel,
                 BaseType,
-                DeclaringType,
-                Constructors,
-                Fields,
-                Properties,
-                Methods,
-                InstantiateGenericListAtIndex(parameterType, index),
-                CustomAttributes);
+                DeclaringType)
+            {
+                Constructors = Constructors,
+                Fields = Fields,
+                Properties = Properties,
+                Methods = Methods,
+                GenericParameters = InstantiateGenericList(genericArguments),
+                CustomAttributes = CustomAttributes
+            };
         }
     }
 }

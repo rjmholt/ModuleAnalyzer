@@ -20,13 +20,16 @@ namespace MetadataAnalysis.Metadata
                 TypeKind.Enum,
                 protectionLevel,
                 LoadedTypes.EnumTypeMetadata,
-                declaringType,
-                ImmutableArray<ConstructorMetadata>.Empty,
-                ImmutableDictionary<string, FieldMetadata>.Empty,
-                ImmutableDictionary<string, PropertyMetadata>.Empty,
-                ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty,
-                customAttributes: customAttributes)
+                declaringType)
         {
+            // TODO: Populate the constructors, fields, properties, methods and custom attributes
+            //       with appropriate enum bits
+            Constructors = ImmutableArray<ConstructorMetadata>.Empty;
+            Fields = ImmutableDictionary<string, FieldMetadata>.Empty;
+            Properties = ImmutableDictionary<string, PropertyMetadata>.Empty;
+            Methods = ImmutableDictionary<string, IImmutableList<MethodMetadata>>.Empty;
+            CustomAttributes = ImmutableArray<CustomAttributeMetadata>.Empty;
+
             UnderlyingEnumType = underlyingEnumType;
             Members = members;
         }
@@ -34,5 +37,10 @@ namespace MetadataAnalysis.Metadata
         public IImmutableList<EnumMemberMetadata> Members { get; }
 
         public PrimitiveTypeCode UnderlyingEnumType { get; }
+
+        internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
+        {
+            return this;
+        }
     }
 }

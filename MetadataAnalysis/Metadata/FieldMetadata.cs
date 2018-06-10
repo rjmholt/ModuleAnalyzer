@@ -6,6 +6,14 @@ namespace MetadataAnalysis.Metadata
 {
     public class FieldMetadata : MemberMetadata
     {
+        public new class Prototype : MemberMetadata.Prototype, IPrototype<FieldMetadata>
+        {
+            public FieldMetadata Get()
+            {
+                return null;
+            }
+        }
+
         public FieldMetadata(
             string name,
             ProtectionLevel protectionLevel,

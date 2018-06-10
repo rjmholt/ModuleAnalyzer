@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
+using MetadataAnalysis.Metadata.Array;
+using MetadataAnalysis.Metadata.Generic;
 using MetadataAnalysis.Metadata.Signature;
 
 namespace MetadataAnalysis.Metadata.TypeProviders
@@ -24,7 +27,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetByReferenceType(TypeMetadata elementType)
         {
-            return new ByRefTypeMetadata((NameableTypeMetadata)elementType);
+            return new ByRefTypeMetadata(elementType);
         }
 
         public TypeMetadata GetFunctionPointerType(MethodSignature<TypeMetadata> signature)
@@ -34,7 +37,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetGenericInstantiation(TypeMetadata genericType, ImmutableArray<TypeMetadata> typeArguments)
         {
-            throw new NotImplementedException();
+            return _metadataAnalyzer.GetGenericInstantiation(genericType, typeArguments);
         }
 
         public TypeMetadata GetGenericMethodParameter(TypeMetadataGenericContext genericContext, int index)
@@ -49,17 +52,18 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetModifiedType(TypeMetadata modifier, TypeMetadata unmodifiedType, bool isRequired)
         {
-            return new VolatileTypeMetadata((NameableTypeMetadata)unmodifiedType);
+            // TODO: Take account of the modifier
+            return new VolatileTypeMetadata(unmodifiedType);
         }
 
         public TypeMetadata GetPinnedType(TypeMetadata elementType)
         {
-            return new PinnedTypeMetadata((NameableTypeMetadata)elementType);
+            return new PinnedTypeMetadata(elementType);
         }
 
         public TypeMetadata GetPointerType(TypeMetadata elementType)
         {
-            return new PointerTypeMetadata((NameableTypeMetadata)elementType);
+            return new PointerTypeMetadata(elementType);
         }
 
         public TypeMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
@@ -69,7 +73,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetSZArrayType(TypeMetadata elementType)
         {
-            throw new NotImplementedException();
+            return ArrayTypeMetadata.CreateArrayFromType(elementType);
         }
 
         public TypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)

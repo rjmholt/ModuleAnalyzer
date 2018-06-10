@@ -8,30 +8,48 @@ namespace MetadataAnalysis.Metadata
 {
     public abstract class TypeMetadata
     {
-        protected TypeMetadata(
-            string name,
-            string @namespace,
-            TypeKind typeKind,
-            ProtectionLevel protectionLevel,
-            TypeMetadata baseType,
-            IImmutableList<ConstructorMetadata> constructors,
-            IImmutableDictionary<string, FieldMetadata> fields,
-            IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null
-        )
+        public abstract class Prototype<TType, TPrototype> : IPrototype<TType>
+            where TType : TypeMetadata
+            where TPrototype : Prototype<TType, TPrototype>
         {
-            Name = name;
-            Namespace = @namespace;
-            TypeKind = TypeKind;
-            ProtectionLevel = protectionLevel;
-            BaseType = baseType;
-            Fields = fields;
-            Properties = properties;
-            Methods = methods;
-            GenericParameters = genericParameters ?? ImmutableArray<GenericParameterMetadata>.Empty;
-            CustomAttributes = customAttributes ?? ImmutableArray<CustomAttributeMetadata>.Empty;
+            protected Prototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
+            {
+                this.name = name;
+                this.@namespace = @namespace;
+                this.typeKind = typeKind;
+                this.protectionLevel = protectionLevel;
+
+                this.constructors = new List<ConstructorMetadata.Prototype>();
+                this.fields = new Dictionary<string, FieldMetadata.Prototype>();
+                this.properties = new Dictionary<string, PropertyMetadata.Prototype>();
+                this.genericParameters = new List<GenericParameterMetadata.Prototype>();
+                this.customAttributes = new List<CustomAttributeMetadata.Prototype>();
+            }
+
+            public readonly string name;
+            public readonly string @namespace;
+            public readonly TypeKind typeKind;
+            public readonly ProtectionLevel protectionLevel;
+
+            public TypeMetadata.Prototype<TypeMetadata>  baseType;
+            public IList<ConstructorMetadata.Prototype> constructors;
+            public IDictionary<string, FieldMetadata.Prototype> fields;
+            public IDictionary<string, PropertyMetadata.Prototype> properties;
+            public IDictionary<string, IList<MethodMetadata.Prototype>> methods;
+            public IList<GenericParameterMetadata.Prototype> genericParameters;
+            public IList<CustomAttributeMetadata.Prototype> customAttributes;
+
+            public abstract TType Get();
+        }
+
+        private readonly TypeMetadata.Prototype _prototype;
+
+        protected TypeMetadata(TypeMetadata.Prototype prototype)
+        {
+            Name = prototype.name;
+            Namespace = prototype.@namespace;
+            TypeKind = prototype.typeKind;
+            ProtectionLevel = prototype.protectionLevel;
         }
 
         public string Name { get; }
@@ -55,19 +73,57 @@ namespace MetadataAnalysis.Metadata
 
         public ProtectionLevel ProtectionLevel { get; }
 
-        public TypeMetadata BaseType { get; }
+        public TypeMetadata BaseType { get => _baseType ?? (_baseType = _prototype.baseType.Get()); }
+        protected TypeMetadata _baseType;
 
-        public IImmutableList<ConstructorMetadata> Constructors { get; }
+        public IImmutableList<ConstructorMetadata> Constructors
+        { 
+            get
+            {
+                if (_constructors == null)
+                {
+                    var ctors = new List<ConstructorMetadata>();
+                    foreach (ConstructorMetadata.Prototype ctor in _prototype.constructors)
+                    {
+                        ctors.Add((ConstructorMetadata)ctor.Get());
+                    }
+                    _constructors = ctors.ToImmutableArray();
+                }
 
-        public IImmutableDictionary<string, FieldMetadata> Fields { get; }
+                return _constructors;
+            }
+        }
+        private IImmutableList<ConstructorMetadata> _constructors;
 
-        public IImmutableDictionary<string, PropertyMetadata> Properties { get; }
+        public IImmutableDictionary<string, FieldMetadata> Fields
+        {
+            get
+            {
+                if (_fields == null)
+                {
+                    _fields = ConvertPrototypeDict<string, FieldMetadata>(_prototype.fields);
+                }
+                return _fields;
+            }
+        }
+        private IImmutableDictionary<string, FieldMetadata> _fields;
 
-        public IImmutableDictionary<string, IImmutableList<MethodMetadata>> Methods { get; }
+        public IImmutableDictionary<string, PropertyMetadata> Properties
+        {
+            get
+            {
+                if (_properties == null)
+                {
+                }
+            }
+        }
+        private IImmutableDictionary<string, PropertyMetadata> _properties;
 
-        public IImmutableList<GenericParameterMetadata> GenericParameters { get; }
+        public IImmutableDictionary<string, IImmutableList<MethodMetadata>> Methods { get; internal set; }
 
-        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
+        public IImmutableList<GenericParameterMetadata> GenericParameters { get; internal set; }
+
+        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; internal set; }
 
         public bool IsGeneric { get => GenericParameters.Any(); }
 
@@ -84,18 +140,42 @@ namespace MetadataAnalysis.Metadata
             return true;
         }
 
-        protected IImmutableList<GenericParameterMetadata> InstantiateGenericListAtIndex(
-            NameableTypeMetadata parameterType,
-            int index)
+        internal abstract TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments);
+
+        internal IImmutableList<GenericParameterMetadata> InstantiateGenericList(
+            IImmutableList<TypeMetadata> genericArguments)
         {
-            if (GenericParameters[index] is ConcreteGenericParameterMetadata)
+            var genericParameters = new List<GenericParameterMetadata>(GenericParameters);
+
+            for (int i = 0; i < genericArguments.Count; i++)
             {
-                throw new ArgumentException("Cannot instantiate concrete generic parameter");
+                genericParameters[i] = new ConcreteGenericParameterMetadata(
+                    genericArguments[i],
+                    GenericParameters[i].Attributes);
             }
 
-            List<GenericParameterMetadata> genericParameters = GenericParameters.ToList();
-            genericParameters[index] = new ConcreteGenericParameterMetadata(parameterType, GenericParameters[index].Attributes);
             return genericParameters.ToImmutableArray();
+        }
+
+        protected static IImmutableList<T> ConvertPrototypeList<T>(IEnumerable<IPrototype<T>> prototypes)
+        {
+            var list = new List<T>();
+            foreach (IPrototype<T> prototype in prototypes)
+            {
+                list.Add((T)prototype.Get());
+            }
+            return list.ToImmutableArray();
+        }
+
+        protected static IImmutableDictionary<TKey, T> ConvertPrototypeDict<TKey, T>(
+            IDictionary<TKey, IPrototype<T>> protoDict)
+        {
+            var dict = new Dictionary<TKey, T>();
+            foreach (KeyValuePair<TKey, IPrototype<T>> prototype in protoDict)
+            {
+                dict.Add(prototype.Key, prototype.Value.Get());
+            }
+            return dict.ToImmutableDictionary();
         }
     }
 }

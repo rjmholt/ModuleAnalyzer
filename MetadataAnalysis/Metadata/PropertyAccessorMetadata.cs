@@ -23,6 +23,7 @@ namespace MetadataAnalysis.Metadata
             bool isStatic = false)
             : base(GETTER_PREFIX + propertyName, protectionLevel, isStatic)
         {
+            ParameterTypes = ImmutableArray<TypeMetadata>.Empty;
         }
     }
 
@@ -36,6 +37,7 @@ namespace MetadataAnalysis.Metadata
             bool isStatic = false)
             : base(SETTER_PREFIX + propertyName, protectionLevel, isStatic)
         {
+            ReturnType = LoadedTypes.VoidTypeMetadata;
         }
     }
 }

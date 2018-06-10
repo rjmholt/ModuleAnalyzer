@@ -7,7 +7,11 @@ namespace MetadataAnalysis.Metadata
         public EnumMemberMetadata(
             string name,
             IImmutableList<CustomAttributeMetadata> customAttributes = null)
-            : base(name, ProtectionLevel.Public, isStatic: true, customAttributes: customAttributes)
+            : base(
+                name,
+                ProtectionLevel.Public,
+                isStatic: true,
+                customAttributes: customAttributes)
         {
         }
     }

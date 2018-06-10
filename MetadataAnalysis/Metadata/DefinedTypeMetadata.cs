@@ -1,35 +1,26 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata
 {
-    public abstract class DefinedTypeMetadata : NameableTypeMetadata
+    public abstract class DefinedTypeMetadata : TypeMetadata
     {
-        protected DefinedTypeMetadata(
-            string name,
-            string @namespace,
-            TypeKind typeKind,
-            ProtectionLevel protectionLevel,
-            TypeMetadata baseType,
-            DefinedTypeMetadata declaringType,
-            IImmutableList<ConstructorMetadata> constructors,
-            IImmutableDictionary<string, FieldMetadata> fields,
-            IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
-                : base(
-                    name,
-                    @namespace,
-                    typeKind,
-                    protectionLevel,
-                    baseType,
-                    constructors,
-                    fields,
-                    properties,
-                    methods,
-                    genericParameters,
-                    customAttributes)
+        public abstract new class Prototype : TypeMetadata.Prototype
+        {
+            protected Prototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
+                : base(name, @namespace, typeKind, protectionLevel)
+            {
+                nestedTypes = new Dictionary<string, Prototype>();
+            }
+
+            public DefinedTypeMetadata.Prototype declaringType;
+
+            public IDictionary<string, DefinedTypeMetadata.Prototype> nestedTypes;
+        }
+
+        protected DefinedTypeMetadata(DefinedTypeMetadata.Prototype prototype)
+                : base(prototype)
         {
             DeclaringType = declaringType;
         }

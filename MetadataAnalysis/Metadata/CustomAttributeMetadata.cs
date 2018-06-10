@@ -5,6 +5,14 @@ namespace MetadataAnalysis.Metadata
 {
     public class CustomAttributeMetadata
     {
+        public class Prototype
+        {
+            public CustomAttributeMetadata Get()
+            {
+
+            }
+        }
+
         public CustomAttributeMetadata(
             TypeMetadata attributeType,
             IImmutableDictionary<string, CustomAttributeNamedArgument<TypeMetadata>> namedArguments,

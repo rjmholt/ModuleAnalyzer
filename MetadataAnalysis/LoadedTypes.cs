@@ -72,15 +72,15 @@ namespace MetadataAnalysis
                 ProtectionLevel.Public,
                 null,
                 null,
-                GetConstructorMetadata(objectType),
-                GetFieldMetadata(objectType),
-                GetPropertyMetadata(objectType),
-                GetMethodMetadata(objectType),
                 isAbstract: false,
                 isSealed: false
             )
             {
-                NestedTypes = GetNestedTypeMetadata(objectType)
+                NestedTypes = GetNestedTypeMetadata(objectType),
+                Constructors = GetConstructorMetadata(objectType),
+                Fields = GetFieldMetadata(objectType),
+                Properties = GetPropertyMetadata(objectType),
+                Methods = GetMethodMetadata(objectType)
             };
 
             var valueTypeMetadata = new ClassMetadata(
@@ -89,15 +89,15 @@ namespace MetadataAnalysis
                 ProtectionLevel.Public,
                 objectTypeMetadata,
                 null,
-                GetConstructorMetadata(valueType),
-                GetFieldMetadata(valueType),
-                GetPropertyMetadata(valueType),
-                GetMethodMetadata(valueType),
                 isAbstract: true,
                 isSealed: false
             )
             {
-                NestedTypes = GetNestedTypeMetadata(valueType)
+                NestedTypes = GetNestedTypeMetadata(valueType),
+                Constructors = GetConstructorMetadata(valueType),
+                Fields = GetFieldMetadata(valueType),
+                Properties = GetPropertyMetadata(valueType),
+                Methods = GetMethodMetadata(valueType)
             };
 
             var enumTypeMetadata = new ClassMetadata(
@@ -106,15 +106,15 @@ namespace MetadataAnalysis
                 ProtectionLevel.Public,
                 valueTypeMetadata,
                 null,
-                GetConstructorMetadata(enumType),
-                GetFieldMetadata(enumType),
-                GetPropertyMetadata(enumType),
-                GetMethodMetadata(enumType),
                 isAbstract: true,
                 isSealed: false
             )
             {
-                NestedTypes = GetNestedTypeMetadata(enumType)
+                NestedTypes = GetNestedTypeMetadata(enumType),
+                Constructors = GetConstructorMetadata(enumType),
+                Fields = GetFieldMetadata(enumType),
+                Properties = GetPropertyMetadata(enumType),
+                Methods = GetMethodMetadata(enumType),
             };
 
             ObjectTypeMetadata = objectTypeMetadata;
@@ -127,6 +127,7 @@ namespace MetadataAnalysis
 
             TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
             ArrayTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(System.Array));
+            VoidTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(void));
 
             // Add primitive types to the cache
             foreach (Type primitiveType in primitiveTypeCodes.Keys)
@@ -153,6 +154,8 @@ namespace MetadataAnalysis
         public static ClassMetadata TypeTypeMetadata { get; }
 
         public static ClassMetadata ArrayTypeMetadata { get; }
+
+        public static ClassMetadata VoidTypeMetadata { get; }
 
         /// <summary>
         /// Get a type metadata object from a system type object.
@@ -210,15 +213,7 @@ namespace MetadataAnalysis
                     type.Name,
                     type.Namespace,
                     GetTypeProtectionLevel(type),
-                    declaringType,
-                    GetConstructorMetadata(type),
-                    GetFieldMetadata(type),
-                    GetPropertyMetadata(type),
-                    GetMethodMetadata(type)
-                )
-                {
-                    NestedTypes = GetNestedTypeMetadata(type)
-                };
+                    declaringType);
             }
             else
             {
@@ -228,22 +223,39 @@ namespace MetadataAnalysis
                     GetTypeProtectionLevel(type),
                     type.BaseType == null ? null : FromType(type.BaseType),
                     declaringType,
-                    GetConstructorMetadata(type),
-                    GetFieldMetadata(type),
-                    GetPropertyMetadata(type),
-                    GetMethodMetadata(type),
                     isAbstract: type.IsAbstract,
-                    isSealed: type.IsSealed
-                )
-                {
-                    NestedTypes = GetNestedTypeMetadata(type)
-                };
+                    isSealed: type.IsSealed);
             }
 
             if (!s_typeMetadataCache.TryAdd(type, typeMetadata))
             {
                 // This shouldn't happen, but throw an exception in case it does
                 throw new Exception("Type already cached!");
+            }
+
+            // Now add all the parts of the type that may reference it itself
+            if (typeMetadata is EnumMetadata enumMetadata)
+            {
+            }
+            else if (typeMetadata is StructMetadata structMetadata)
+            {
+                structMetadata.NestedTypes = GetNestedTypeMetadata(type);
+                structMetadata.Constructors = GetConstructorMetadata(type);
+                structMetadata.Fields = GetFieldMetadata(type);
+                structMetadata.Properties = GetPropertyMetadata(type);
+                structMetadata.Methods = GetMethodMetadata(type);
+                structMetadata.GenericParameters = GetGenericParameters(type);
+                structMetadata.CustomAttributes = GetCustomAttributes(type.CustomAttributes);
+            }
+            else if (typeMetadata is ClassMetadata classMetadata)
+            {
+                classMetadata.NestedTypes = GetNestedTypeMetadata(type);
+                classMetadata.Constructors = GetConstructorMetadata(type);
+                classMetadata.Fields = GetFieldMetadata(type);
+                classMetadata.Properties = GetPropertyMetadata(type);
+                classMetadata.Methods = GetMethodMetadata(type);
+                classMetadata.GenericParameters = GetGenericParameters(type);
+                classMetadata.CustomAttributes = GetCustomAttributes(type.CustomAttributes);
             }
 
             return typeMetadata;

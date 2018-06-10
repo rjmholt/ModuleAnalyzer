@@ -4,6 +4,14 @@ namespace MetadataAnalysis.Metadata
 {
     public class ConstructorMetadata : MethodMetadata
     {
+        public new class Prototype : MethodMetadata.Prototype
+        {
+            public override MemberMetadata Get()
+            {
+
+            }
+        }
+
         public const string CTOR_METHOD_NAME = "ctor";
 
         public ConstructorMetadata(

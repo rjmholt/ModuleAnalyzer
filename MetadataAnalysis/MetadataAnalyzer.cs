@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Text;
 using MetadataAnalysis.Metadata;
 using MetadataAnalysis.Metadata.Generic;
 using MetadataAnalysis.Metadata.TypeProviders;
@@ -402,6 +403,45 @@ namespace MetadataAnalysis
                 return true;
             }
             return false;
+        }
+
+        internal TypeMetadata GetGenericInstantiation(
+            TypeMetadata type,
+            IImmutableList<TypeMetadata> genericArguments)
+        {
+            string genericName = GetGenericTypeFullName(type, genericArguments);
+
+            if (TryGetCachedType(genericName, out TypeMetadata genericInstantiation))
+            {
+                return genericInstantiation;
+            }
+
+            genericInstantiation = type.InstantiateGenerics(genericArguments);
+            _typeMetadataCache.Add(genericName, genericInstantiation);
+            return genericInstantiation;
+        }
+
+        private string GetGenericTypeFullName(
+            TypeMetadata type,
+            IImmutableList<TypeMetadata> genericArguments)
+        {
+            if (!genericArguments.Any())
+            {
+                return type.FullName;
+            }
+
+            var sb = new StringBuilder();
+            sb.Append(type.FullName);
+            sb.Append("[");
+            for (int i = 0; i < genericArguments.Count - 1; i++)
+            {
+                sb.Append(genericArguments[i].FullName);
+                sb.Append(",");
+            }
+            sb.Append(genericArguments[genericArguments.Count-1]);
+            sb.Append("]");
+
+            return sb.ToString();
         }
 
         /// <summary>

@@ -5,6 +5,14 @@ namespace MetadataAnalysis.Metadata
 {
     public class PropertyMetadata : MemberMetadata
     {
+        public new class Prototype : MemberMetadata.Prototype
+        {
+            public override MemberMetadata Get()
+            {
+
+            }
+        }
+
         public PropertyMetadata(
             string name,
             TypeMetadata type,

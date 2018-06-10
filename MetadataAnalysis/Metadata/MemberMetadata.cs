@@ -6,6 +6,10 @@ namespace MetadataAnalysis.Metadata
 {
     public abstract class MemberMetadata
     {
+        public abstract class Prototype
+        {
+        }
+
         protected MemberMetadata(
             string name,
             ProtectionLevel protectionLevel,

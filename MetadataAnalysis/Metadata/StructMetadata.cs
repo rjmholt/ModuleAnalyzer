@@ -5,46 +5,44 @@ namespace MetadataAnalysis.Metadata
 {
     public class StructMetadata : DefinedTypeMetadata
     {
+        public new class Prototype : DefinedTypeMetadata.Prototype, IPrototype<StructMetadata>
+        {
+            protected Prototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
+                : base(name, @namespace, typeKind, protectionLevel)
+            {
+            }
+        }
+
         public StructMetadata(
             string name,
             string @namespace,
             ProtectionLevel protectionLevel,
-            DefinedTypeMetadata declaringType,
-            IImmutableList<ConstructorMetadata> constructors,
-            IImmutableDictionary<string, FieldMetadata> fields,
-            IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
+            DefinedTypeMetadata declaringType)
             : base(
                 name,
                 @namespace,
                 TypeKind.Struct,
                 protectionLevel,
                 LoadedTypes.ValueTypeMetadata,
-                declaringType,
-                constructors,
-                fields,
-                properties,
-                methods,
-                genericParameters,
-                customAttributes)
+                declaringType)
         {
         }
 
-        internal StructMetadata InstantiateGeneric(NameableTypeMetadata parameterType, int index)
+        internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
         {
             return new StructMetadata(
                 Name,
                 Namespace,
                 ProtectionLevel,
-                DeclaringType,
-                Constructors,
-                Fields,
-                Properties,
-                Methods,
-                InstantiateGenericListAtIndex(parameterType, index),
-                CustomAttributes);
+                DeclaringType)
+            {
+                Constructors = Constructors,
+                Fields = Fields,
+                Properties = Properties,
+                Methods = Methods,
+                GenericParameters = InstantiateGenericList(genericArguments),
+                CustomAttributes = CustomAttributes
+            };
         }
     }
 }
