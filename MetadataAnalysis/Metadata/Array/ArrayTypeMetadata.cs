@@ -52,13 +52,16 @@ namespace MetadataAnalysis.Metadata.Array
                 methods.Add(methodEntry.Key, overloadList.ToImmutableArray());
             }
 
-            return new ArrayTypeMetadata(
-                typeMetadata,
-                constructors.ToImmutableArray(),
-                fields.ToImmutableDictionary(),
-                properties.ToImmutableDictionary(),
-                methods.ToImmutableDictionary()
-            );
+            return new ArrayTypeMetadata(typeMetadata)
+            {
+                NestedTypes = ImmutableDictionary<string, DefinedTypeMetadata>.Empty,
+                Constructors = constructors.ToImmutableArray(),
+                CustomAttributes = ImmutableArray<CustomAttributeMetadata>.Empty,
+                Fields = fields.ToImmutableDictionary(),
+                Properties = properties.ToImmutableDictionary(),
+                Methods = methods.ToImmutableDictionary(),
+                GenericParameters = ImmutableArray<GenericParameterMetadata>.Empty
+            };
         }
 
         private static ConstructorMetadata InstantiateConstructorWithType(
@@ -78,8 +81,10 @@ namespace MetadataAnalysis.Metadata.Array
             return new FieldMetadata(
                 fieldTemplate.Name,
                 fieldTemplate.ProtectionLevel,
-                fieldTemplate.IsStatic,
-                InstantiateGenericParameterListWithType(fieldTemplate.GenericParameters, typeMetadata));
+                fieldTemplate.IsStatic)
+            {
+                GenericParameters = InstantiateGenericParameterListWithType(fieldTemplate.GenericParameters, typeMetadata)
+            };
         }
 
         private static PropertyMetadata InstantiatePropertyWithType(
@@ -91,12 +96,14 @@ namespace MetadataAnalysis.Metadata.Array
 
             return new PropertyMetadata(
                 propertyTemplate.Name,
-                propertyTemplate.Type == s_arrayProbeTypeMetadata ? typeMetadata : propertyTemplate.Type,
                 propertyTemplate.ProtectionLevel,
-                getter,
-                setter,
-                propertyTemplate.IsStatic,
-                InstantiateGenericParameterListWithType(propertyTemplate.GenericParameters, typeMetadata));
+                propertyTemplate.IsStatic)
+            {
+                Type = propertyTemplate.Type == s_arrayProbeTypeMetadata ? typeMetadata : propertyTemplate.Type,
+                Getter = getter,
+                Setter = setter,
+                GenericParameters = InstantiateGenericParameterListWithType(propertyTemplate.GenericParameters, typeMetadata)
+            };
         }
 
         private static PropertyGetterMetadata InstantiateGetterWithType(
@@ -126,8 +133,11 @@ namespace MetadataAnalysis.Metadata.Array
             return new MethodMetadata(
                 methodTemplate.Name,
                 methodTemplate.ProtectionLevel,
-                methodTemplate.IsStatic,
-                InstantiateGenericParameterListWithType(methodTemplate.GenericParameters, typeMetadata));
+                methodTemplate.IsStatic)
+            {
+                ReturnType = methodTemplate.ReturnType == s_arrayProbeTypeMetadata ? typeMetadata : methodTemplate.ReturnType,
+                GenericParameters = InstantiateGenericParameterListWithType(methodTemplate.GenericParameters, typeMetadata)
+            };
         }
 
         private static CustomAttributeMetadata InstantiateCustomAttributeWithType(
@@ -168,27 +178,16 @@ namespace MetadataAnalysis.Metadata.Array
 
 
         private ArrayTypeMetadata(
-            TypeMetadata underlyingType,
-            IImmutableList<ConstructorMetadata> constructors,
-            IImmutableDictionary<string, FieldMetadata> fields,
-            IImmutableDictionary<string, PropertyMetadata> properties,
-            IImmutableDictionary<string, IImmutableList<MethodMetadata>> methods,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
+            TypeMetadata underlyingType)
                 : base(
                     underlyingType.Name + "[]",
                     underlyingType.Namespace,
+                    underlyingType.FullName + "[]",
                     TypeKind.ArrayType,
-                    underlyingType.ProtectionLevel,
-                    LoadedTypes.ArrayTypeMetadata,
-                    constructors,
-                    fields,
-                    properties,
-                    methods,
-                    genericParameters: null,
-                    customAttributes: customAttributes)
+                    underlyingType.ProtectionLevel)
         {
             UnderlyingType = underlyingType;
+            BaseType = LoadedTypes.ArrayTypeMetadata;
         }
 
         public TypeMetadata UnderlyingType { get; }

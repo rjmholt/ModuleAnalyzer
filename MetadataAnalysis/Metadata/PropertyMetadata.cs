@@ -5,34 +5,18 @@ namespace MetadataAnalysis.Metadata
 {
     public class PropertyMetadata : MemberMetadata
     {
-        public new class Prototype : MemberMetadata.Prototype
-        {
-            public override MemberMetadata Get()
-            {
-
-            }
-        }
-
         public PropertyMetadata(
             string name,
-            TypeMetadata type,
             ProtectionLevel protectionLevel,
-            PropertyGetterMetadata getter,
-            PropertySetterMetadata setter,
-            bool isStatic = false,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
-            : base(name, protectionLevel, isStatic, genericParameters, customAttributes)
+            bool isStatic = false)
+            : base(name, protectionLevel, isStatic)
         {
-            Type = type;
-            Getter = getter;
-            Setter = setter;
         }
 
         public TypeMetadata Type { get; internal set; }
 
-        public PropertyGetterMetadata Getter { get; }
+        public PropertyGetterMetadata Getter { get; internal set; }
 
-        public PropertySetterMetadata Setter { get; }
+        public PropertySetterMetadata Setter { get; internal set; }
     }
 }

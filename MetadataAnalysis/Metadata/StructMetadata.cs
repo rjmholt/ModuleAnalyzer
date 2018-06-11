@@ -5,27 +5,19 @@ namespace MetadataAnalysis.Metadata
 {
     public class StructMetadata : DefinedTypeMetadata
     {
-        public new class Prototype : DefinedTypeMetadata.Prototype, IPrototype<StructMetadata>
-        {
-            protected Prototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
-                : base(name, @namespace, typeKind, protectionLevel)
-            {
-            }
-        }
-
         public StructMetadata(
             string name,
             string @namespace,
-            ProtectionLevel protectionLevel,
-            DefinedTypeMetadata declaringType)
+            string fullName,
+            ProtectionLevel protectionLevel)
             : base(
                 name,
                 @namespace,
+                fullName,
                 TypeKind.Struct,
-                protectionLevel,
-                LoadedTypes.ValueTypeMetadata,
-                declaringType)
+                protectionLevel)
         {
+            BaseType = LoadedTypes.ValueTypeMetadata;
         }
 
         internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
@@ -33,8 +25,8 @@ namespace MetadataAnalysis.Metadata
             return new StructMetadata(
                 Name,
                 Namespace,
-                ProtectionLevel,
-                DeclaringType)
+                FullName,
+                ProtectionLevel)
             {
                 Constructors = Constructors,
                 Fields = Fields,

@@ -8,18 +8,16 @@ namespace MetadataAnalysis.Metadata
         public ClassMetadata(
             string name,
             string @namespace,
+            string fullName,
             ProtectionLevel protectionLevel,
-            TypeMetadata baseType,
-            DefinedTypeMetadata declaringType,
             bool isAbstract = false,
             bool isSealed = false)
                 : base(
                     name,
                     @namespace,
+                    fullName,
                     TypeKind.Class,
-                    protectionLevel,
-                    baseType,
-                    declaringType)
+                    protectionLevel)
         {
             IsAbstract = isAbstract;
             IsSealed = isSealed;
@@ -42,10 +40,12 @@ namespace MetadataAnalysis.Metadata
             return new ClassMetadata(
                 Name,
                 Namespace,
-                ProtectionLevel,
-                BaseType,
-                DeclaringType)
+                FullName,
+                ProtectionLevel)
             {
+                BaseType = BaseType,
+                DeclaringType = DeclaringType,
+                NestedTypes = NestedTypes,
                 Constructors = Constructors,
                 Fields = Fields,
                 Properties = Properties,

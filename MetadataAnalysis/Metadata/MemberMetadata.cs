@@ -6,31 +6,23 @@ namespace MetadataAnalysis.Metadata
 {
     public abstract class MemberMetadata
     {
-        public abstract class Prototype
-        {
-        }
-
         protected MemberMetadata(
             string name,
             ProtectionLevel protectionLevel,
-            bool isStatic = false, 
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
+            bool isStatic = false)
         {
             Name = name;
             ProtectionLevel = protectionLevel;
             IsStatic = isStatic;
-            GenericParameters = genericParameters ?? ImmutableArray<GenericParameterMetadata>.Empty;
-            CustomAttributes = customAttributes ?? ImmutableArray<CustomAttributeMetadata>.Empty;
         }
 
         public string Name { get; }
 
         public ProtectionLevel ProtectionLevel { get; }
 
-        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; }
+        public IImmutableList<CustomAttributeMetadata> CustomAttributes { get; internal set; }
 
-        public IImmutableList<GenericParameterMetadata> GenericParameters { get; }
+        public IImmutableList<GenericParameterMetadata> GenericParameters { get; internal set; }
 
         public bool IsStatic { get; }
     }

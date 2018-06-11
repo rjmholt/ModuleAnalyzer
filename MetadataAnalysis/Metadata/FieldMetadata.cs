@@ -6,21 +6,11 @@ namespace MetadataAnalysis.Metadata
 {
     public class FieldMetadata : MemberMetadata
     {
-        public new class Prototype : MemberMetadata.Prototype, IPrototype<FieldMetadata>
-        {
-            public FieldMetadata Get()
-            {
-                return null;
-            }
-        }
-
         public FieldMetadata(
             string name,
             ProtectionLevel protectionLevel,
-            bool isStatic = false,
-            IImmutableList<GenericParameterMetadata> genericParameters = null,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null)
-            : base(name, protectionLevel, isStatic, genericParameters, customAttributes)
+            bool isStatic = false)
+            : base(name, protectionLevel, isStatic)
         {
         }
 

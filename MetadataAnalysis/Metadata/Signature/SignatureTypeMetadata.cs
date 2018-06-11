@@ -6,10 +6,11 @@ namespace MetadataAnalysis.Metadata.Signature
             : base(
                 prefix + underlyingType.Name,
                 underlyingType.Namespace,
+                prefix + underlyingType.FullName,
                 TypeKind.ByReferenceType,
-                underlyingType.ProtectionLevel,
-                underlyingType.BaseType)
+                underlyingType.ProtectionLevel)
         {
+            BaseType = underlyingType.BaseType;
             UnderlyingType = underlyingType;
             Constructors = underlyingType.Constructors;
             Fields = underlyingType.Fields;

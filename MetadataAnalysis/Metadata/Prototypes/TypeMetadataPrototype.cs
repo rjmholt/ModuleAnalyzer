@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace MetadataAnalysis.Metadata.Prototypes
 {
-    public abstract class TypeMetadataPrototype<TType> where TType : TypeMetadata
+    internal abstract class TypeMetadataPrototype<TType> where TType : TypeMetadata
     {
         protected TypeMetadataPrototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
         {

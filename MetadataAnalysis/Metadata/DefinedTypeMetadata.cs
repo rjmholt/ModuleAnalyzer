@@ -6,26 +6,17 @@ namespace MetadataAnalysis.Metadata
 {
     public abstract class DefinedTypeMetadata : TypeMetadata
     {
-        public abstract new class Prototype : TypeMetadata.Prototype
+        protected DefinedTypeMetadata(
+            string name,
+            string @namespace,
+            string fullName,
+            TypeKind typeKind,
+            ProtectionLevel protectionLevel)
+            : base(name, @namespace, fullName, typeKind, protectionLevel)
         {
-            protected Prototype(string name, string @namespace, TypeKind typeKind, ProtectionLevel protectionLevel)
-                : base(name, @namespace, typeKind, protectionLevel)
-            {
-                nestedTypes = new Dictionary<string, Prototype>();
-            }
-
-            public DefinedTypeMetadata.Prototype declaringType;
-
-            public IDictionary<string, DefinedTypeMetadata.Prototype> nestedTypes;
         }
 
-        protected DefinedTypeMetadata(DefinedTypeMetadata.Prototype prototype)
-                : base(prototype)
-        {
-            DeclaringType = declaringType;
-        }
-
-        public DefinedTypeMetadata DeclaringType { get; }
+        public DefinedTypeMetadata DeclaringType { get; internal set; }
 
         public IImmutableDictionary<string, DefinedTypeMetadata> NestedTypes { get; internal set; }
     }

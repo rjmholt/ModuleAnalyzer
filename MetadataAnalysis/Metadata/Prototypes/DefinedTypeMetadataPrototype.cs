@@ -2,7 +2,8 @@ using System.Collections.Generic;
 
 namespace MetadataAnalysis.Metadata.Prototypes
 {
-    public abstract class DefinedTypeMetadataPrototype<TType> : TypeMetadataPrototype<TType>
+    internal abstract class DefinedTypeMetadataPrototype<TType> : TypeMetadataPrototype<TType>
+        where TType : TypeMetadata
     {
         protected DefinedTypeMetadataPrototype(
             string name,

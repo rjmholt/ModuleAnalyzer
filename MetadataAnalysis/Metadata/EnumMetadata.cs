@@ -9,19 +9,18 @@ namespace MetadataAnalysis.Metadata
         public EnumMetadata(
             string name,
             string @namespace,
+            string fullName,
             ProtectionLevel protectionLevel,
-            DefinedTypeMetadata declaringType,
-            PrimitiveTypeCode underlyingEnumType,
-            IImmutableList<EnumMemberMetadata> members,
-            IImmutableList<CustomAttributeMetadata> customAttributes = null) :
-            base(
+            PrimitiveTypeCode underlyingEnumType)
+            : base(
                 name,
                 @namespace,
+                fullName,
                 TypeKind.Enum,
-                protectionLevel,
-                LoadedTypes.EnumTypeMetadata,
-                declaringType)
+                protectionLevel)
         {
+            BaseType = LoadedTypes.EnumTypeMetadata;
+
             // TODO: Populate the constructors, fields, properties, methods and custom attributes
             //       with appropriate enum bits
             Constructors = ImmutableArray<ConstructorMetadata>.Empty;
@@ -31,10 +30,9 @@ namespace MetadataAnalysis.Metadata
             CustomAttributes = ImmutableArray<CustomAttributeMetadata>.Empty;
 
             UnderlyingEnumType = underlyingEnumType;
-            Members = members;
         }
 
-        public IImmutableList<EnumMemberMetadata> Members { get; }
+        public IImmutableList<EnumMemberMetadata> Members { get; internal set; }
 
         public PrimitiveTypeCode UnderlyingEnumType { get; }
 
