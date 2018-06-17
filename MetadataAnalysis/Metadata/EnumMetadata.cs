@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Immutable;
-using System.Reflection.Metadata;
 using MetadataAnalysis.Metadata;
 
 namespace MetadataAnalysis.Metadata
@@ -11,7 +11,7 @@ namespace MetadataAnalysis.Metadata
             string @namespace,
             string fullName,
             ProtectionLevel protectionLevel,
-            PrimitiveTypeCode underlyingEnumType)
+            TypeCode underlyingEnumType)
             : base(
                 name,
                 @namespace,
@@ -34,7 +34,7 @@ namespace MetadataAnalysis.Metadata
 
         public IImmutableList<EnumMemberMetadata> Members { get; internal set; }
 
-        public PrimitiveTypeCode UnderlyingEnumType { get; }
+        public TypeCode UnderlyingEnumType { get; }
 
         internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
         {

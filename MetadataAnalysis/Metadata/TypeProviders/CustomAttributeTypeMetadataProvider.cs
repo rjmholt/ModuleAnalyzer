@@ -80,12 +80,45 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public PrimitiveTypeCode GetUnderlyingEnumType(TypeMetadata type)
         {
-            return ((EnumMetadata)type).UnderlyingEnumType;
+            return ConvertEnumUnderlyingTypeCode(((EnumMetadata)type).UnderlyingEnumType);
         }
 
         public bool IsSystemType(TypeMetadata type)
         {
             return type == LoadedTypes.TypeTypeMetadata;
+        }
+
+        public static PrimitiveTypeCode ConvertEnumUnderlyingTypeCode(TypeCode typeCode)
+        {
+            switch (typeCode)
+            {
+                case TypeCode.Boolean:
+                    return PrimitiveTypeCode.Boolean;
+                case TypeCode.Byte:
+                    return PrimitiveTypeCode.Byte;
+                case TypeCode.Char:
+                    return PrimitiveTypeCode.Char;
+                case TypeCode.Double:
+                    return PrimitiveTypeCode.Double;
+                case TypeCode.Int16:
+                    return PrimitiveTypeCode.Int16;
+                case TypeCode.Int32:
+                    return PrimitiveTypeCode.Int32;
+                case TypeCode.Int64:
+                    return PrimitiveTypeCode.Int64;
+                case TypeCode.SByte:
+                    return PrimitiveTypeCode.SByte;
+                case TypeCode.Single:
+                    return PrimitiveTypeCode.Single;
+                case TypeCode.UInt16:
+                    return PrimitiveTypeCode.UInt16;
+                case TypeCode.UInt32:
+                    return PrimitiveTypeCode.UInt32;
+                case TypeCode.UInt64:
+                    return PrimitiveTypeCode.UInt64;
+                default:
+                    throw new Exception($"Unable to convert type code: '{typeCode}'");
+            }
         }
     }
 }

@@ -6,11 +6,6 @@ namespace MetadataAnalysis.Metadata.Generic
 {
     public abstract class GenericParameterMetadata
     {
-        public abstract class Prototype
-        {
-            public abstract GenericParameterMetadata Get();
-        }
-
         protected GenericParameterMetadata(string name, GenericParameterAttributes attributes)
         {
             Name = name;
@@ -24,14 +19,6 @@ namespace MetadataAnalysis.Metadata.Generic
     
     public class UninstantiatedGenericParameterMetadata : GenericParameterMetadata
     {
-        public new class Prototype : GenericParameterMetadata.Prototype
-        {
-            public override GenericParameterMetadata Get()
-            {
-
-            }
-        }
-
         public UninstantiatedGenericParameterMetadata(string name, GenericParameterAttributes attributes)
             : base(name, attributes)
         {
@@ -40,14 +27,6 @@ namespace MetadataAnalysis.Metadata.Generic
 
     public class ConcreteGenericParameterMetadata : GenericParameterMetadata
     {
-        public new class Prototype : GenericParameterMetadata.Prototype
-        {
-            public override GenericParameterMetadata Get()
-            {
-
-            }
-        }
-
         public ConcreteGenericParameterMetadata(TypeMetadata type, GenericParameterAttributes attributes)
             : base(type.Name, attributes)
         {

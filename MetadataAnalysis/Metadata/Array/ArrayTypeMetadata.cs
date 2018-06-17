@@ -176,21 +176,29 @@ namespace MetadataAnalysis.Metadata.Array
             return genericParameterTemplate;
         }
 
+        internal ArrayTypeMetadata(
+            string name,
+            string @namespace,
+            string fullName,
+            ProtectionLevel protectionLevel)
+            : base(name, @namespace, fullName, TypeKind.ArrayType, protectionLevel)
+        {
+            BaseType = LoadedTypes.ArrayTypeMetadata;
+        }
 
         private ArrayTypeMetadata(
             TypeMetadata underlyingType)
-                : base(
-                    underlyingType.Name + "[]",
-                    underlyingType.Namespace,
-                    underlyingType.FullName + "[]",
-                    TypeKind.ArrayType,
-                    underlyingType.ProtectionLevel)
+            : this(
+                underlyingType.Name + "[]",
+                underlyingType.Namespace,
+                underlyingType.FullName + "[]",
+                underlyingType.ProtectionLevel)
         {
             UnderlyingType = underlyingType;
             BaseType = LoadedTypes.ArrayTypeMetadata;
         }
 
-        public TypeMetadata UnderlyingType { get; }
+        public TypeMetadata UnderlyingType { get; internal set; }
 
         internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
         {

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection.Metadata;
 using MetadataAnalysis.Metadata;
 using MetadataAnalysis.Metadata.Generic;
+using MetadataAnalysis.Metadata.Array;
 
 namespace MetadataAnalysis
 {
@@ -19,45 +20,15 @@ namespace MetadataAnalysis
         /// <summary>
         /// A cache of the types fetched from the .NET runtime.
         /// </summary>
-        private static ConcurrentDictionary<Type, TypeMetadata> s_typeMetadataCache;
+        private static readonly ConcurrentDictionary<Type, TypeMetadata> s_typeMetadataCache;
 
-        private static ConcurrentDictionary<Type, PrimitiveTypeCode> s_primitiveTypeCodes;
+        private static readonly ConcurrentDictionary<Type, PrimitiveTypeCode> s_primitiveTypeCodes;
 
         /// <summary>
         /// Initialize the loaded type cache with common primitive types.
         /// </summary>
         static LoadedTypes()
         {
-            // Primitive types to preload into both a correspondance table
-            // with the PrimitiveTypeCode enum and also into the metadata cache
-            var primitiveTypeCodes = new Dictionary<Type, PrimitiveTypeCode>()
-            {
-                { typeof(Boolean),        PrimitiveTypeCode.Boolean        },
-                { typeof(Byte),           PrimitiveTypeCode.Byte           },
-                { typeof(Char),           PrimitiveTypeCode.Char           },
-                { typeof(Double),         PrimitiveTypeCode.Double         },
-                { typeof(Int16),          PrimitiveTypeCode.Int16          },
-                { typeof(Int32),          PrimitiveTypeCode.Int32          },
-                { typeof(Int64),          PrimitiveTypeCode.Int64          },
-                { typeof(IntPtr),         PrimitiveTypeCode.IntPtr         },
-                { typeof(Object),         PrimitiveTypeCode.Object         },
-                { typeof(SByte),          PrimitiveTypeCode.SByte          },
-                { typeof(Single),         PrimitiveTypeCode.Single         },
-                { typeof(String),         PrimitiveTypeCode.String         },
-                { typeof(TypedReference), PrimitiveTypeCode.TypedReference },
-                { typeof(UInt16),         PrimitiveTypeCode.UInt16         },
-                { typeof(UInt32),         PrimitiveTypeCode.UInt32         },
-                { typeof(UInt64),         PrimitiveTypeCode.UInt64         },
-                { typeof(UIntPtr),        PrimitiveTypeCode.UIntPtr        },
-                { typeof(void),           PrimitiveTypeCode.Void           }
-            };
-
-            s_primitiveTypeCodes = new ConcurrentDictionary<Type, PrimitiveTypeCode>();
-            foreach (KeyValuePair<Type, PrimitiveTypeCode> primitiveType in primitiveTypeCodes)
-            {
-                s_primitiveTypeCodes[primitiveType.Key] = primitiveType.Value;
-            }
-
             // Initialize the cache
             s_typeMetadataCache = new ConcurrentDictionary<Type, TypeMetadata>();
 
@@ -74,14 +45,7 @@ namespace MetadataAnalysis
                 ProtectionLevel.Public,
                 isAbstract: false,
                 isSealed: false
-            )
-            {
-                NestedTypes = GetNestedTypeMetadata(objectType),
-                Constructors = GetConstructorMetadata(objectType),
-                Fields = GetFieldMetadata(objectType),
-                Properties = GetPropertyMetadata(objectType),
-                Methods = GetMethodMetadata(objectType)
-            };
+            );
 
             var valueTypeMetadata = new ClassMetadata(
                 valueType.Name,
@@ -92,12 +56,7 @@ namespace MetadataAnalysis
                 isSealed: false
             )
             {
-                BaseType = objectTypeMetadata,
-                NestedTypes = GetNestedTypeMetadata(valueType),
-                Constructors = GetConstructorMetadata(valueType),
-                Fields = GetFieldMetadata(valueType),
-                Properties = GetPropertyMetadata(valueType),
-                Methods = GetMethodMetadata(valueType)
+                BaseType = objectTypeMetadata
             };
 
             var enumTypeMetadata = new ClassMetadata(
@@ -109,12 +68,7 @@ namespace MetadataAnalysis
                 isSealed: false
             )
             {
-                BaseType = valueTypeMetadata,
-                NestedTypes = GetNestedTypeMetadata(enumType),
-                Constructors = GetConstructorMetadata(enumType),
-                Fields = GetFieldMetadata(enumType),
-                Properties = GetPropertyMetadata(enumType),
-                Methods = GetMethodMetadata(enumType),
+                BaseType = valueTypeMetadata
             };
 
             ObjectTypeMetadata = objectTypeMetadata;
@@ -125,12 +79,52 @@ namespace MetadataAnalysis
             s_typeMetadataCache.TryAdd(valueType, valueTypeMetadata);
             s_typeMetadataCache.TryAdd(enumType, enumTypeMetadata);
 
+            objectTypeMetadata.NestedTypes = GetNestedTypeMetadata(objectType);
+            objectTypeMetadata.Constructors = GetConstructorMetadata(objectType);
+            objectTypeMetadata.Fields = GetFieldMetadata(objectType);
+            objectTypeMetadata.Properties = GetPropertyMetadata(objectType);
+            objectTypeMetadata.Methods = GetMethodMetadata(objectType);
+
+            valueTypeMetadata.NestedTypes = GetNestedTypeMetadata(valueType);
+            valueTypeMetadata.Constructors = GetConstructorMetadata(valueType);
+            valueTypeMetadata.Fields = GetFieldMetadata(valueType);
+            valueTypeMetadata.Properties = GetPropertyMetadata(valueType);
+            valueTypeMetadata.Methods = GetMethodMetadata(valueType);
+            
+            enumTypeMetadata.NestedTypes = GetNestedTypeMetadata(enumType);
+            enumTypeMetadata.Constructors = GetConstructorMetadata(enumType);
+            enumTypeMetadata.Fields = GetFieldMetadata(enumType);
+            enumTypeMetadata.Properties = GetPropertyMetadata(enumType);
+            enumTypeMetadata.Methods = GetMethodMetadata(enumType);
+
+
             TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
             ArrayTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(System.Array));
             VoidTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(void));
 
-            // Add primitive types to the cache
-            foreach (Type primitiveType in primitiveTypeCodes.Keys)
+            // Primitive types to load into the type cache
+            var primitiveTypes = new []
+            {
+                typeof(Boolean),
+                typeof(Byte),
+                typeof(Char),
+                typeof(Double),
+                typeof(Int16),
+                typeof(Int32),
+                typeof(Int64),
+                typeof(IntPtr),
+                typeof(Object),
+                typeof(SByte),
+                typeof(Single),
+                typeof(String),
+                typeof(TypedReference),
+                typeof(UInt16),
+                typeof(UInt32),
+                typeof(UInt64),
+                typeof(UIntPtr),
+                typeof(void)
+            };
+            foreach (Type primitiveType in primitiveTypes)
             {
                 FromType(primitiveType);
             }
@@ -164,6 +158,11 @@ namespace MetadataAnalysis
         /// <returns>an object representing the metadata of the given type.</returns>
         public static TypeMetadata FromType(Type type)
         {
+            if (type == null)
+            {
+                return null;
+            }
+
             // Search the cache first
             TypeMetadata typeMetadata;
             if (s_typeMetadataCache.TryGetValue(type, out typeMetadata))
@@ -175,6 +174,10 @@ namespace MetadataAnalysis
             DefinedTypeMetadata declaringType = type.DeclaringType == null ? null : (DefinedTypeMetadata)FromType(type.DeclaringType);
 
             // We differentiate based on what kind of type
+            if (type.IsArray)
+            {
+                typeMetadata = GetArrayMetadata(type);
+            }
             if (type.IsEnum)
             {
                 typeMetadata = GetEnumMetadata(type);
@@ -236,13 +239,41 @@ namespace MetadataAnalysis
             return typeCode;
         }
 
+        private static ArrayTypeMetadata GetArrayMetadata(Type arrayType)
+        {
+            TypeMetadata underlyingType = FromType(arrayType.GetElementType());
+
+            var arrayMetadata = new ArrayTypeMetadata(
+                arrayType.Name,
+                arrayType.Namespace,
+                GetLongTypeName(arrayType),
+                GetProtectionLevel(arrayType))
+            {
+                UnderlyingType = underlyingType,
+                BaseType = LoadedTypes.ArrayTypeMetadata,
+            };
+
+            if (!s_typeMetadataCache.TryAdd(arrayType, arrayMetadata))
+            {
+                throw new Exception($"Array type already loaded in cache: '{arrayType.FullName}'");
+            }
+
+            arrayMetadata.Constructors = GetConstructorMetadata(arrayType);
+            arrayMetadata.CustomAttributes = GetCustomAttributes(arrayType.GetCustomAttributesData());
+            arrayMetadata.Fields = GetFieldMetadata(arrayType);
+            arrayMetadata.Properties = GetPropertyMetadata(arrayType);
+            arrayMetadata.Methods = GetMethodMetadata(arrayType);
+
+            return arrayMetadata;
+        }
+
         private static ClassMetadata GetClassMetadata(Type classType)
         {
             var classMetadata = new ClassMetadata(
                 classType.Name,
                 classType.Namespace,
-                classType.FullName,
-                GetTypeProtectionLevel(classType),
+                GetLongTypeName(classType),
+                GetProtectionLevel(classType),
                 classType.IsAbstract,
                 classType.IsSealed
             );
@@ -262,13 +293,28 @@ namespace MetadataAnalysis
             return classMetadata;
         }
 
+        private static string GetLongTypeName(Type type)
+        {
+            if (type.DeclaringType != null)
+            {
+                return GetLongTypeName(type.DeclaringType) + "." + type.Name;
+            }
+
+            if (String.IsNullOrEmpty(type.Namespace))
+            {
+                return type.Name;
+            }
+
+            return type.Namespace + "." + type.Name;
+        }
+
         private static StructMetadata GetStructMetadata(Type structType)
         {
             var structMetadata = new StructMetadata(
                 structType.Name,
                 structType.Namespace,
-                structType.FullName,
-                GetTypeProtectionLevel(structType)
+                GetLongTypeName(structType),
+                GetProtectionLevel(structType)
             )
             {
             };
@@ -289,12 +335,17 @@ namespace MetadataAnalysis
 
         private static EnumMetadata GetEnumMetadata(Type enumType)
         {
+            object value = Enum.GetValues(enumType).GetValue(0);
+            MethodInfo typeCodeMethod = enumType.GetMethod("GetTypeCode");
+
+            var typeCode = (TypeCode)typeCodeMethod.Invoke(value, new object[0]);
+
             var enumMetadata = new EnumMetadata(
                 enumType.Name,
                 enumType.Namespace,
-                enumType.FullName,
-                GetTypeProtectionLevel(enumType),
-                s_primitiveTypeCodes[enumType.UnderlyingSystemType]
+                GetLongTypeName(enumType),
+                GetProtectionLevel(enumType),
+                typeCode
             );
 
             if (!s_typeMetadataCache.TryAdd(enumType, enumMetadata))
@@ -317,7 +368,7 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="type">the type to get the accessibility of.</param>
         /// <returns>the accessibility level of the type.</returns>
-        private static ProtectionLevel GetTypeProtectionLevel(Type type)
+        private static ProtectionLevel GetProtectionLevel(Type type)
         {
             if (type.IsPublic || type.IsNestedPublic)
             {
@@ -342,7 +393,7 @@ namespace MetadataAnalysis
             return ProtectionLevel.Internal;
         }
 
-        private static ProtectionLevel GetMethodProtectionLevel(MethodAttributes methodAttributes)
+        private static ProtectionLevel GetProtectionLevel(MethodAttributes methodAttributes)
         {
             switch (methodAttributes & MethodAttributes.MemberAccessMask)
             {
@@ -366,7 +417,7 @@ namespace MetadataAnalysis
             }
         }
 
-        private static ProtectionLevel GetFieldProtectionLevel(FieldAttributes fieldAttributes)
+        private static ProtectionLevel GetProtectionLevel(FieldAttributes fieldAttributes)
         {
             switch (fieldAttributes & FieldAttributes.FieldAccessMask)
             {
@@ -401,7 +452,7 @@ namespace MetadataAnalysis
             foreach (ConstructorInfo ctor in type.GetConstructors())
             {
                 var ctorMetadata = new ConstructorMetadata(
-                    GetMethodProtectionLevel(ctor.Attributes),
+                    GetProtectionLevel(ctor.Attributes),
                     ctor.IsStatic)
                 {
                     CustomAttributes = GetCustomAttributes(type.GetCustomAttributesData())
@@ -423,7 +474,7 @@ namespace MetadataAnalysis
             {
                 var fieldMetadata = new FieldMetadata(
                     field.Name,
-                    GetFieldProtectionLevel(field.Attributes),
+                    GetProtectionLevel(field.Attributes),
                     field.IsStatic)
                 {
                     CustomAttributes = GetCustomAttributes(field.GetCustomAttributesData()),
@@ -448,18 +499,18 @@ namespace MetadataAnalysis
 
                 TypeMetadata propertyType = FromType(property.PropertyType);
 
-                var getterMetadata = new PropertyGetterMetadata(
+                var getterMetadata = getter == null ? null : new PropertyGetterMetadata(
                     property.Name,
-                    GetMethodProtectionLevel(getter.Attributes),
+                    GetProtectionLevel(getter.Attributes),
                     getter.IsStatic)
                 {
                     CustomAttributes = GetCustomAttributes(getter.GetCustomAttributesData()),
                     ReturnType = propertyType
                 };
 
-                var setterMetadata = new PropertySetterMetadata(
+                var setterMetadata = setter == null ? null : new PropertySetterMetadata(
                     property.Name,
-                    GetMethodProtectionLevel(setter.Attributes),
+                    GetProtectionLevel(setter.Attributes),
                     setter.IsStatic)
                 {
                     CustomAttributes = GetCustomAttributes(setter.GetCustomAttributesData()),
@@ -469,7 +520,7 @@ namespace MetadataAnalysis
                 var propertyMetadata = new PropertyMetadata(
                     property.Name,
                     ProtectionLevel.Public, // TODO: Correct this later
-                    getter.IsStatic || setter.IsStatic)
+                    ReadPropertyIsStatic(getter, setter))
                 {
                     CustomAttributes = GetCustomAttributes(property.GetCustomAttributesData()),
                     Getter = getterMetadata,
@@ -477,9 +528,26 @@ namespace MetadataAnalysis
                     Type = propertyType,
                     GenericParameters = ImmutableArray<GenericParameterMetadata>.Empty
                 };
+
+                properties.Add(property.Name, propertyMetadata);
             }
 
             return properties.ToImmutableDictionary();
+        }
+
+        private static bool ReadPropertyIsStatic(MethodInfo getter, MethodInfo setter)
+        {
+            if (getter != null)
+            {
+                return getter.IsStatic;
+            }
+
+            if (setter != null)
+            {
+                return setter.IsStatic;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -505,7 +573,7 @@ namespace MetadataAnalysis
 
                 var methodMetadata = new MethodMetadata(
                     method.Name,
-                    GetMethodProtectionLevel(method.Attributes),
+                    GetProtectionLevel(method.Attributes),
                     method.IsStatic)
                 {
                     CustomAttributes = GetCustomAttributes(method.GetCustomAttributesData()),

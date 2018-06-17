@@ -19,6 +19,43 @@ namespace MetadataAnalysis
     /// </summary>
     public class MetadataAnalyzer : IDisposable
     {
+        public static TypeCode ConvertEnumUnderlyingTypeCode(PrimitiveTypeCode typeCode)
+        {
+            switch (typeCode)
+            {
+                case PrimitiveTypeCode.Boolean:
+                    return TypeCode.Boolean;
+                case PrimitiveTypeCode.Byte:
+                    return TypeCode.Byte;
+                case PrimitiveTypeCode.Char:
+                    return TypeCode.Char;
+                case PrimitiveTypeCode.Double:
+                    return TypeCode.Double;
+                case PrimitiveTypeCode.Int16:
+                    return TypeCode.Int16;
+                case PrimitiveTypeCode.Int32:
+                    return TypeCode.Int32;
+                case PrimitiveTypeCode.Int64:
+                    return TypeCode.Int64;
+                case PrimitiveTypeCode.Object:
+                    return TypeCode.Object;
+                case PrimitiveTypeCode.SByte:
+                    return TypeCode.SByte;
+                case PrimitiveTypeCode.Single:
+                    return TypeCode.Single;
+                case PrimitiveTypeCode.String:
+                    return TypeCode.String;
+                case PrimitiveTypeCode.UInt16:
+                    return TypeCode.UInt16;
+                case PrimitiveTypeCode.UInt32:
+                    return TypeCode.UInt32;
+                case PrimitiveTypeCode.UInt64:
+                    return TypeCode.UInt64;
+                default:
+                    throw new Exception($"Unrepresentable enum type: '{typeCode}'");
+            }
+        }
+
         public const string DEFAULT_ENUM_MEMBER_NAME = "value__";
 
         /// <summary>
@@ -27,16 +64,20 @@ namespace MetadataAnalysis
         /// </summary>
         private const string MODULE_TYPE_NAME = "<Module>";
 
+        private const string CONSTRUCTOR_NAME = ".ctor";
+
         /// <summary>
         /// The portable executable reader required to
         /// read metadata (not used directly, but must not be disposed while we are reading).
         /// </summary>
-        private PEReader _peReader;
+        private readonly PEReader _peReader;
 
         /// <summary>
         /// The metadata reader to parse the IL binary metadata.
         /// </summary>
-        private MetadataReader _mdReader;
+        private readonly MetadataReader _mdReader;
+
+        private readonly ISignatureTypeProvider<TypeMetadata, TypeMetadataGenericContext> _signatureProvider;
 
         /// <summary>
         /// A cache of types we have already seen, which can be
@@ -58,6 +99,7 @@ namespace MetadataAnalysis
             }
 
             _mdReader = _peReader.GetMetadataReader();
+            _signatureProvider = new TypeSignatureProvider(this);
             // Start with an empty cache
             _typeMetadataCache = new Dictionary<string, TypeMetadata>();
         }
@@ -395,7 +437,7 @@ namespace MetadataAnalysis
                 @namespace,
                 fullName,
                 protectionLevel,
-                underlyingEnumType)
+                ConvertEnumUnderlyingTypeCode(underlyingEnumType))
             {
                 DeclaringType = (DefinedTypeMetadata)declaringType
             };
@@ -526,15 +568,17 @@ namespace MetadataAnalysis
         {
             name = _mdReader.GetString(typeDef.Name);
 
-            if (!typeDef.BaseType.IsNil)
+
+            TypeDefinitionHandle declaringTypeHandle = typeDef.GetDeclaringType();
+            if (!declaringTypeHandle.IsNil)
             {
-                string baseName = ReadFullTypeName(typeDef.BaseType);
+                string declaringName = ReadFullTypeName(declaringTypeHandle);
                 @namespace  = null;
-                return baseName + "." + name;
+                return declaringName + "." + name;
             }
 
             @namespace = _mdReader.GetString(typeDef.Namespace);
-            return @namespace + "." + name;
+            return String.IsNullOrEmpty(@namespace) ? name : @namespace + "." + name;
         }
 
         private string ReadFullTypeName(EntityHandle baseTypeHandle)
@@ -656,7 +700,7 @@ namespace MetadataAnalysis
                 )
                 {
                     // TODO: Decode the field signature. This may be of the object's type itself...
-                    Type = null
+                    Type = fieldDef.DecodeSignature(_signatureProvider, null)
                 };
                 fields.Add(fieldMetadata.Name, fieldMetadata);
             }
@@ -678,6 +722,8 @@ namespace MetadataAnalysis
                 PropertyAccessors accessors = propertyDef.GetAccessors();
 
                 string propertyName = _mdReader.GetString(propertyDef.Name);
+
+                MethodSignature<TypeMetadata> propertySignature = propertyDef.DecodeSignature(_signatureProvider, null);
 
                 PropertyGetterMetadata getter = null;
                 if (!accessors.Getter.IsNil)
@@ -740,7 +786,58 @@ namespace MetadataAnalysis
         private (IImmutableList<ConstructorMetadata>, IImmutableDictionary<string, IImmutableList<MethodMetadata>>)
             ReadMethodMetadata(IEnumerable<MethodDefinitionHandle> methodHandles)
         {
-            return (null, null);
+            var ctors = new List<ConstructorMetadata>();
+            var methods = new Dictionary<string, List<MethodMetadata>>();
+
+            foreach (MethodDefinitionHandle methodHandle in methodHandles)
+            {
+                MethodDefinition methodDef = _mdReader.GetMethodDefinition(methodHandle);
+                string methodName = _mdReader.GetString(methodDef.Name);
+                MethodSignature<TypeMetadata> signature = methodDef.DecodeSignature(_signatureProvider, null);
+
+                if (methodName == CONSTRUCTOR_NAME)
+                {
+                    var ctor = new ConstructorMetadata(
+                        ReadProtectionLevel(methodDef.Attributes),
+                        ReadStatic(methodDef.Attributes),
+                        ReadCustomAttributes(methodDef.GetCustomAttributes()))
+                    {
+                        ReturnType = signature.ReturnType,
+                        ParameterTypes = signature.ParameterTypes
+                    };
+
+                    ctors.Add(ctor);
+                    continue;
+                }
+
+                if (!methods.ContainsKey(methodName))
+                {
+                    methods.Add(methodName, new List<MethodMetadata>());
+                }
+
+                var method = new MethodMetadata(
+                    methodName,
+                    ReadProtectionLevel(methodDef.Attributes),
+                    ReadStatic(methodDef.Attributes))
+                {
+                    CustomAttributes = ReadCustomAttributes(methodDef.GetCustomAttributes()),
+                    ParameterTypes = signature.ParameterTypes,
+                    ReturnType = signature.ReturnType,
+                };
+
+                methods[method.Name].Add(method);
+            }
+
+            var immutableMethods = new Dictionary<string, IImmutableList<MethodMetadata>>(methods.Count);
+            foreach (KeyValuePair<string, List<MethodMetadata>> methodEntry in methods)
+            {
+                immutableMethods.Add(methodEntry.Key, methodEntry.Value.ToImmutableArray());
+            }
+
+            return (
+                ctors.ToImmutableArray(),
+                immutableMethods.ToImmutableDictionary()
+            );
         }
 
         /// <summary>
@@ -1071,8 +1168,6 @@ namespace MetadataAnalysis
                     _peReader.Dispose();
                 }
 
-                _mdReader = null;
-                _peReader = null;
                 disposedValue = true;
             }
         }
