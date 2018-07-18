@@ -19,6 +19,40 @@ namespace MetadataAnalysis
     /// </summary>
     public class MetadataAnalyzer : IDisposable
     {
+        private static IDictionary<Type, PrimitiveTypeCode> PrimitiveTypeTable
+        {
+            get
+            {
+                if (s_primitiveTypeTable == null)
+                {
+                    s_primitiveTypeTable = new Dictionary<Type, PrimitiveTypeCode>
+                    {
+                        { typeof(Boolean),        PrimitiveTypeCode.Boolean        },
+                        { typeof(Byte),           PrimitiveTypeCode.Byte           },
+                        { typeof(Char),           PrimitiveTypeCode.Char           },
+                        { typeof(Double),         PrimitiveTypeCode.Double         },
+                        { typeof(Int16),          PrimitiveTypeCode.Int16          },
+                        { typeof(Int32),          PrimitiveTypeCode.Int32          },
+                        { typeof(Int64),          PrimitiveTypeCode.Int64          },
+                        { typeof(IntPtr),         PrimitiveTypeCode.IntPtr         },
+                        { typeof(Object),         PrimitiveTypeCode.Object         },
+                        { typeof(SByte),          PrimitiveTypeCode.SByte          },
+                        { typeof(Single),         PrimitiveTypeCode.Single         },
+                        { typeof(String),         PrimitiveTypeCode.String         },
+                        { typeof(TypedReference), PrimitiveTypeCode.TypedReference },
+                        { typeof(UInt16),         PrimitiveTypeCode.UInt16         },
+                        { typeof(UInt32),         PrimitiveTypeCode.UInt32         },
+                        { typeof(UInt64),         PrimitiveTypeCode.UInt64         },
+                        { typeof(UIntPtr),        PrimitiveTypeCode.UIntPtr        },
+                        { typeof(void),           PrimitiveTypeCode.Void           }
+                    };
+                }
+
+                return s_primitiveTypeTable;
+            }
+        }
+        private static IDictionary<Type, PrimitiveTypeCode> s_primitiveTypeTable;
+
         public static TypeCode ConvertEnumUnderlyingTypeCode(PrimitiveTypeCode typeCode)
         {
             switch (typeCode)
@@ -425,7 +459,7 @@ namespace MetadataAnalysis
             {
                 if (field.Name == DEFAULT_ENUM_MEMBER_NAME)
                 {
-                    underlyingEnumType = LoadedTypes.GetPrimitiveTypeCode(Type.GetType(field.Type.FullName));
+                    underlyingEnumType = PrimitiveTypeTable[Type.GetType(field.Type.FullName)];
                     continue;
                 }
 
@@ -484,15 +518,15 @@ namespace MetadataAnalysis
         {
             string fullName = GetFullTypeName(typeRef);
 
-            if (String.Equals(fullName, LoadedTypes.ObjectTypeMetadata.FullName))
+            if (String.Equals(fullName, LoadedTypes.ObjectTypeFullName))
             {
                 return TypeKind.Class;
             }
-            else if (String.Equals(fullName, LoadedTypes.ValueTypeMetadata.FullName))
+            else if (String.Equals(fullName, LoadedTypes.ValueTypeFullName))
             {
                 return TypeKind.Struct;
             }
-            else if (String.Equals(fullName, LoadedTypes.EnumTypeMetadata.FullName))
+            else if (String.Equals(fullName, LoadedTypes.EnumTypeFullName))
             {
                 return TypeKind.Enum;
             }

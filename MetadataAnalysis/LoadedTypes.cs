@@ -8,6 +8,7 @@ using System.Reflection.Metadata;
 using MetadataAnalysis.Metadata;
 using MetadataAnalysis.Metadata.Generic;
 using MetadataAnalysis.Metadata.Array;
+using MetadataAnalysis.Metadata.Signature;
 
 namespace MetadataAnalysis
 {
@@ -20,9 +21,7 @@ namespace MetadataAnalysis
         /// <summary>
         /// A cache of the types fetched from the .NET runtime.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, TypeMetadata> s_typeMetadataCache;
-
-        private static readonly ConcurrentDictionary<Type, PrimitiveTypeCode> s_primitiveTypeCodes;
+        private static readonly TypeCache s_typeCache;
 
         /// <summary>
         /// Initialize the loaded type cache with common primitive types.
@@ -30,7 +29,7 @@ namespace MetadataAnalysis
         static LoadedTypes()
         {
             // Initialize the cache
-            s_typeMetadataCache = new ConcurrentDictionary<Type, TypeMetadata>();
+            s_typeCache = new TypeCache();
 
             // Process the common base types
             Type objectType = typeof(object);
@@ -75,9 +74,9 @@ namespace MetadataAnalysis
             ValueTypeMetadata  = valueTypeMetadata;
             EnumTypeMetadata   = enumTypeMetadata;
 
-            s_typeMetadataCache.TryAdd(objectType, objectTypeMetadata);
-            s_typeMetadataCache.TryAdd(valueType, valueTypeMetadata);
-            s_typeMetadataCache.TryAdd(enumType, enumTypeMetadata);
+            s_typeCache.TryAdd(objectType, objectTypeMetadata);
+            s_typeCache.TryAdd(valueType, valueTypeMetadata);
+            s_typeCache.TryAdd(enumType, enumTypeMetadata);
 
             objectTypeMetadata.NestedTypes = GetNestedTypeMetadata(objectType);
             objectTypeMetadata.Constructors = GetConstructorMetadata(objectType);
@@ -97,10 +96,9 @@ namespace MetadataAnalysis
             enumTypeMetadata.Properties = GetPropertyMetadata(enumType);
             enumTypeMetadata.Methods = GetMethodMetadata(enumType);
 
-
             TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
             ArrayTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(System.Array));
-            VoidTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(void));
+            VoidTypeMetadata = (StructMetadata)LoadedTypes.FromType(typeof(void));
 
             // Primitive types to load into the type cache
             var primitiveTypes = new []
@@ -130,6 +128,12 @@ namespace MetadataAnalysis
             }
         }
 
+        public const string ObjectTypeFullName = "System.Object";
+
+        public const string ValueTypeFullName = "System.ValueType";
+
+        public const string EnumTypeFullName = "System.Enum";
+
         /// <summary>
         /// The type metadata for System.Object.
         /// </summary>
@@ -149,7 +153,7 @@ namespace MetadataAnalysis
 
         public static ClassMetadata ArrayTypeMetadata { get; }
 
-        public static ClassMetadata VoidTypeMetadata { get; }
+        public static StructMetadata VoidTypeMetadata { get; }
 
         /// <summary>
         /// Get a type metadata object from a system type object.
@@ -164,8 +168,7 @@ namespace MetadataAnalysis
             }
 
             // Search the cache first
-            TypeMetadata typeMetadata;
-            if (s_typeMetadataCache.TryGetValue(type, out typeMetadata))
+            if (s_typeCache.TryGetValue(type, out TypeMetadata typeMetadata))
             {
                 return typeMetadata;
             }
@@ -174,11 +177,15 @@ namespace MetadataAnalysis
             DefinedTypeMetadata declaringType = type.DeclaringType == null ? null : (DefinedTypeMetadata)FromType(type.DeclaringType);
 
             // We differentiate based on what kind of type
-            if (type.IsArray)
+            if (type.IsByRef)
+            {
+                typeMetadata = GetByRefMetadata(type);
+            }
+            else if (type.IsArray)
             {
                 typeMetadata = GetArrayMetadata(type);
             }
-            if (type.IsEnum)
+            else if (type.IsEnum)
             {
                 typeMetadata = GetEnumMetadata(type);
             }
@@ -229,14 +236,11 @@ namespace MetadataAnalysis
             return Type.GetType(fullTypeName) != null;
         }
 
-        public static PrimitiveTypeCode GetPrimitiveTypeCode(Type type)
+        private static ByRefTypeMetadata GetByRefMetadata(Type byRefType)
         {
-            if (!s_primitiveTypeCodes.TryGetValue(type, out PrimitiveTypeCode typeCode))
-            {
-                throw new ArgumentException("Type is not a primitive type", nameof(type));
-            }
+            TypeMetadata underlyingType = FromType(byRefType.GetElementType());
 
-            return typeCode;
+            return new ByRefTypeMetadata(underlyingType);
         }
 
         private static ArrayTypeMetadata GetArrayMetadata(Type arrayType)
@@ -253,10 +257,7 @@ namespace MetadataAnalysis
                 BaseType = LoadedTypes.ArrayTypeMetadata,
             };
 
-            if (!s_typeMetadataCache.TryAdd(arrayType, arrayMetadata))
-            {
-                throw new Exception($"Array type already loaded in cache: '{arrayType.FullName}'");
-            }
+            s_typeCache[arrayType] = arrayMetadata;
 
             arrayMetadata.Constructors = GetConstructorMetadata(arrayType);
             arrayMetadata.CustomAttributes = GetCustomAttributes(arrayType.GetCustomAttributesData());
@@ -277,11 +278,8 @@ namespace MetadataAnalysis
                 classType.IsAbstract,
                 classType.IsSealed
             );
-
-            if (!s_typeMetadataCache.TryAdd(classType, classMetadata))
-            {
-                throw new Exception($"Loaded class type already in cache: {classMetadata.FullName}");
-            }
+            
+            s_typeCache[classType] = classMetadata;
 
             classMetadata.BaseType = FromType(classType.BaseType);
             classMetadata.DeclaringType = (DefinedTypeMetadata)FromType(classType.DeclaringType);
@@ -291,21 +289,6 @@ namespace MetadataAnalysis
             classMetadata.Methods = GetMethodMetadata(classType);
 
             return classMetadata;
-        }
-
-        private static string GetLongTypeName(Type type)
-        {
-            if (type.DeclaringType != null)
-            {
-                return GetLongTypeName(type.DeclaringType) + "." + type.Name;
-            }
-
-            if (String.IsNullOrEmpty(type.Namespace))
-            {
-                return type.Name;
-            }
-
-            return type.Namespace + "." + type.Name;
         }
 
         private static StructMetadata GetStructMetadata(Type structType)
@@ -319,10 +302,7 @@ namespace MetadataAnalysis
             {
             };
 
-            if (!s_typeMetadataCache.TryAdd(structType, structMetadata))
-            {
-                throw new Exception($"Loaded struct type already in cache: {structMetadata.FullName}");
-            }
+            s_typeCache[structType] = structMetadata;
 
             structMetadata.DeclaringType = (DefinedTypeMetadata)FromType(structType.DeclaringType);
             structMetadata.Constructors = GetConstructorMetadata(structType);
@@ -348,10 +328,7 @@ namespace MetadataAnalysis
                 typeCode
             );
 
-            if (!s_typeMetadataCache.TryAdd(enumType, enumMetadata))
-            {
-                throw new Exception($"Loaded enum type already in cache: {enumMetadata.FullName}");
-            }
+            s_typeCache[enumType] = enumMetadata;
 
             enumMetadata.DeclaringType = (DefinedTypeMetadata)FromType(enumType.DeclaringType);
             enumMetadata.Members = GetEnumMemberMetadata(enumType, enumMetadata);
@@ -361,6 +338,21 @@ namespace MetadataAnalysis
             enumMetadata.CustomAttributes = GetCustomAttributes(enumType.GetCustomAttributesData());
 
             return enumMetadata;
+        }
+
+        private static string GetLongTypeName(Type type)
+        {
+            if (type.DeclaringType != null)
+            {
+                return GetLongTypeName(type.DeclaringType) + "." + type.Name;
+            }
+
+            if (String.IsNullOrEmpty(type.Namespace))
+            {
+                return type.Name;
+            }
+
+            return type.Namespace + "." + type.Name;
         }
 
         /// <summary>
@@ -686,6 +678,86 @@ namespace MetadataAnalysis
                 nestedTypes.Add(nestedType.Name, nestedTypeMetadata);
             }
             return nestedTypes.ToImmutableDictionary();
+        }
+
+        private class TypeCache
+        {
+            private readonly Dictionary<Type, TypeMetadata> _typeTable;
+
+            private readonly Dictionary<string, Type> _typeNameTable;
+
+            private readonly object _lockObj;
+
+            public TypeCache()
+            {
+                _lockObj = new object();
+                _typeTable = new Dictionary<Type, TypeMetadata>();
+                _typeNameTable = new Dictionary<string, Type>();
+            }
+
+            public bool TryAdd(Type type, TypeMetadata typeMetadata)
+            {
+                lock(_lockObj)
+                {
+                    if (_typeNameTable.TryAdd(GetLongTypeName(type), type))
+                    {
+                        return _typeTable.TryAdd(type, typeMetadata);
+                    }
+                }
+
+                return false;
+            }
+
+            public bool TryGetValue(Type type, out TypeMetadata typeMetadata)
+            {
+                lock (_lockObj)
+                {
+                    if (_typeTable.TryGetValue(type, out typeMetadata))
+                    {
+                        return true;
+                    }
+
+                    if (_typeNameTable.TryGetValue(GetLongTypeName(type), out Type precedingType))
+                    {
+                        typeMetadata = _typeTable[precedingType];
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            public TypeMetadata this[Type type]
+            {
+                get
+                {
+                    string longName;
+                    lock (_lockObj)
+                    {
+                        if (_typeTable.ContainsKey(type))
+                        {
+                            return _typeTable[type];
+                        }
+
+                        longName = GetLongTypeName(type);
+                        if (_typeNameTable.ContainsKey(longName))
+                        {
+                            return _typeTable[_typeNameTable[longName]];
+                        }
+                    }
+
+                    throw new KeyNotFoundException($"No such type in cache: '{longName}'");
+                }
+
+                set
+                {
+                    lock (_lockObj)
+                    {
+                        _typeTable[type] = value;
+                        _typeNameTable[GetLongTypeName(type)] = type;
+                    }
+                }
+            }
         }
     }
 }
