@@ -209,16 +209,21 @@ namespace MetadataAnalysis
         /// <returns>true if the type is found, false otherwise.</returns>
         public static bool TryFindByName(string fullTypeName, out TypeMetadata typeMetadata)
         {
-            // Look for the type by name, and if we find it, use our type function
-            Type type = Type.GetType(fullTypeName);
-            if (type == null)
+            if (String.IsNullOrEmpty(fullTypeName))
             {
                 typeMetadata = null;
                 return false;
             }
 
-            typeMetadata = FromType(type);
-            return true;
+            Type type = Type.GetType(fullTypeName);
+            if (type != null)
+            {
+                typeMetadata = FromType(type);
+                return true;
+            }
+
+            typeMetadata = null;
+            return false;
         }
 
         public static TypeMetadata GetByName(string fullTypeName)

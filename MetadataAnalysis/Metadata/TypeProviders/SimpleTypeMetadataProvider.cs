@@ -85,6 +85,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
         public TypeMetadata GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
         {
             TypeReference typeRef = reader.GetTypeReference(handle);
+
             if (!_metadataAnalyzer.TryLookupTypeReference(typeRef, out TypeMetadata typeMetadata))
             {
                 throw new Exception($"Type not found in cache: '{reader.GetString(typeRef.Name)}'");

@@ -110,6 +110,11 @@ namespace MetadataAnalysis.Metadata.Array
             PropertyMetadata propertyTemplate,
             TypeMetadata typeMetadata)
         {
+            if (propertyTemplate.Getter == null)
+            {
+                return null;
+            }
+
             return new PropertyGetterMetadata(
                 propertyTemplate.Name,
                 propertyTemplate.Getter.ProtectionLevel,
@@ -120,6 +125,11 @@ namespace MetadataAnalysis.Metadata.Array
             PropertyMetadata propertyTemplate,
             TypeMetadata typeMetadata)
         {
+            if (propertyTemplate.Setter == null)
+            {
+                return null;
+            }
+
             return new PropertySetterMetadata(
                 propertyTemplate.Name,
                 propertyTemplate.Setter.ProtectionLevel,
@@ -154,7 +164,13 @@ namespace MetadataAnalysis.Metadata.Array
             IEnumerable<GenericParameterMetadata> genericParameterTemplates,
             TypeMetadata typeMetadata)
         {
+            if (genericParameterTemplates == null)
+            {
+                return ImmutableArray<GenericParameterMetadata>.Empty;
+            }
+
             var genericParameters = new List<GenericParameterMetadata>();
+
             foreach (GenericParameterMetadata genericParameterTemplate in genericParameterTemplates)
             {
                 genericParameters.Add(InstantiateGenericParameterWithType(genericParameterTemplate, typeMetadata));

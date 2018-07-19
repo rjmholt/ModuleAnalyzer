@@ -547,6 +547,8 @@ namespace MetadataAnalysis
         /// <returns>true if the type was found, false otherwise</returns>
         internal bool TryLookupTypeReference(TypeReference typeRef, out TypeMetadata typeMetadata)
         {
+            // First look into the cache
+
             // The full type name
             string typeName = _mdReader.GetString(typeRef.Name);
             string typeNamespace = _mdReader.GetString(typeRef.Namespace);
@@ -556,7 +558,82 @@ namespace MetadataAnalysis
             {
                 return true;
             }
+
+            // If we don't have the type, we will have to try and load the assembly
+            switch (typeRef.ResolutionScope.Kind)
+            {
+                case HandleKind.AssemblyReference:
+                    AssemblyReference asmRef = _mdReader.GetAssemblyReference((AssemblyReferenceHandle)typeRef.ResolutionScope);
+                    string fullyQualifiedAsmName = GetFullyQualifiedAsmName(
+                        _mdReader.GetString(asmRef.Name),
+                        asmRef.Culture.IsNil ? null : _mdReader.GetString(asmRef.Culture),
+                        asmRef.PublicKeyOrToken.IsNil ? null : _mdReader.GetBlobBytes(asmRef.PublicKeyOrToken),
+                        asmRef.Version);
+                    
+                    Assembly asm;
+                    try
+                    {
+                        asm = Assembly.Load(fullyQualifiedAsmName);
+                    }
+                    catch
+                    {
+                        typeMetadata = null;
+                        return false;
+                    }
+
+                    Type type = asm.GetType(fullTypeName);
+                    if (type == null)
+                    {
+                        typeMetadata = null;
+                        return false;
+                    }
+
+                    typeMetadata = LoadedTypes.FromType(type);
+                    return true;
+            }
+
             return false;
+        }
+
+        private static string GetFullyQualifiedAsmName(
+            string asmName,
+            string cultureName,
+            byte[] publicKeyToken,
+            Version version)
+        {
+            var asmNameBuilder = new StringBuilder();
+            asmNameBuilder.Append(asmName);
+
+            asmNameBuilder.Append(", ");
+            asmNameBuilder.Append("Culture=");
+            if (String.IsNullOrEmpty(cultureName))
+            {
+                asmNameBuilder.Append("\"\"");
+            }
+            else
+            {
+                asmNameBuilder.Append(cultureName);
+            }
+
+            asmNameBuilder.Append(", ");
+            asmNameBuilder.Append("PublicKeyToken=");
+            if (publicKeyToken == null)
+            {
+                asmNameBuilder.Append("null");
+            }
+            else
+            {
+                asmNameBuilder.Append(BitConverter.ToString(publicKeyToken).Replace("-", String.Empty).ToLower());
+            }
+
+            if (version != null)
+            {
+                asmNameBuilder.Append(", ");
+                asmNameBuilder.Append("Version=");
+                asmNameBuilder.Append(version);
+            }
+
+            return asmNameBuilder.ToString();
         }
 
         internal TypeMetadata GetGenericInstantiation(
@@ -825,41 +902,22 @@ namespace MetadataAnalysis
 
             foreach (MethodDefinitionHandle methodHandle in methodHandles)
             {
-                MethodDefinition methodDef = _mdReader.GetMethodDefinition(methodHandle);
-                string methodName = _mdReader.GetString(methodDef.Name);
-                MethodSignature<TypeMetadata> signature = methodDef.DecodeSignature(_signatureProvider, null);
+                MethodMetadata methodMetadata = ReadMethodMetadata(methodHandle);
 
-                if (methodName == CONSTRUCTOR_NAME)
+                switch (methodMetadata)
                 {
-                    var ctor = new ConstructorMetadata(
-                        ReadProtectionLevel(methodDef.Attributes),
-                        ReadStatic(methodDef.Attributes),
-                        ReadCustomAttributes(methodDef.GetCustomAttributes()))
-                    {
-                        ReturnType = signature.ReturnType,
-                        ParameterTypes = signature.ParameterTypes
-                    };
+                    case ConstructorMetadata ctor:
+                        ctors.Add(ctor);
+                        continue;
 
-                    ctors.Add(ctor);
-                    continue;
+                    case MethodMetadata method:
+                        if (!methods.ContainsKey(method.Name))
+                        {
+                            methods.Add(method.Name, new List<MethodMetadata>());
+                        }
+                        methods[method.Name].Add(method);
+                        continue;
                 }
-
-                if (!methods.ContainsKey(methodName))
-                {
-                    methods.Add(methodName, new List<MethodMetadata>());
-                }
-
-                var method = new MethodMetadata(
-                    methodName,
-                    ReadProtectionLevel(methodDef.Attributes),
-                    ReadStatic(methodDef.Attributes))
-                {
-                    CustomAttributes = ReadCustomAttributes(methodDef.GetCustomAttributes()),
-                    ParameterTypes = signature.ParameterTypes,
-                    ReturnType = signature.ReturnType,
-                };
-
-                methods[method.Name].Add(method);
             }
 
             var immutableMethods = new Dictionary<string, IImmutableList<MethodMetadata>>(methods.Count);
@@ -872,6 +930,35 @@ namespace MetadataAnalysis
                 ctors.ToImmutableArray(),
                 immutableMethods.ToImmutableDictionary()
             );
+        }
+
+        private MethodMetadata ReadMethodMetadata(MethodDefinitionHandle methodDefHandle)
+        {
+            MethodDefinition methodDef = _mdReader.GetMethodDefinition(methodDefHandle);
+            string methodName = _mdReader.GetString(methodDef.Name);
+            MethodSignature<TypeMetadata> signature = methodDef.DecodeSignature(_signatureProvider, null);
+
+            if (methodName == CONSTRUCTOR_NAME)
+            {
+                return new ConstructorMetadata(
+                    ReadProtectionLevel(methodDef.Attributes),
+                    ReadStatic(methodDef.Attributes),
+                    ReadCustomAttributes(methodDef.GetCustomAttributes()))
+                {
+                    ReturnType = signature.ReturnType,
+                    ParameterTypes = signature.ParameterTypes
+                };
+            }
+
+            return new MethodMetadata(
+                methodName,
+                ReadProtectionLevel(methodDef.Attributes),
+                ReadStatic(methodDef.Attributes))
+            {
+                CustomAttributes = ReadCustomAttributes(methodDef.GetCustomAttributes()),
+                ParameterTypes = signature.ParameterTypes,
+                ReturnType = signature.ReturnType,
+            };
         }
 
         /// <summary>
@@ -914,6 +1001,10 @@ namespace MetadataAnalysis
                 case HandleKind.MemberReference:
                     MemberReference caCtor = _mdReader.GetMemberReference((MemberReferenceHandle)ctorHandle);
                     return GetTypeFromEntityHandle(caCtor.Parent);
+
+                case HandleKind.MethodDefinition:
+                    MethodDefinition caCtorDef = _mdReader.GetMethodDefinition((MethodDefinitionHandle)ctorHandle);
+                    return GetTypeFromEntityHandle(caCtorDef.GetDeclaringType());
 
                 default:
                     throw new Exception($"Unhandled handle kind: '{ctorHandle.Kind}'");
