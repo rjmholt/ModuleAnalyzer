@@ -10,5 +10,6 @@ namespace MetadataAnalysis.Metadata
         Enum,
         ByReferenceType,
         ArrayType,
+        Dummy,
     }
 }

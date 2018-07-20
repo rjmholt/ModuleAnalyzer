@@ -398,12 +398,12 @@ namespace MetadataAnalysis
 
             _typeMetadataCache.Add(fullName, classMetadata);
 
-            classMetadata.BaseType = ReadBaseType(typeDef.BaseType);
-            classMetadata.Fields = ReadFieldMetadata(typeDef.GetFields());
-            classMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties());
-            (classMetadata.Constructors, classMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods());
-            classMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: classMetadata);
             classMetadata.GenericParameters = ReadGenericParameters(typeDef.GetGenericParameters());
+            classMetadata.BaseType = ReadBaseType(typeDef.BaseType);
+            classMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), classMetadata.GenericParameters);
+            classMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), classMetadata.GenericParameters);
+            (classMetadata.Constructors, classMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), classMetadata.GenericParameters);
+            classMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: classMetadata);
             classMetadata.CustomAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
 
             return classMetadata;
@@ -431,12 +431,13 @@ namespace MetadataAnalysis
 
             _typeMetadataCache.Add(fullName, structMetadata);
 
-            structMetadata.BaseType = ReadBaseType(typeDef.BaseType);
-            structMetadata.Fields = ReadFieldMetadata(typeDef.GetFields());
-            structMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties());
-            (structMetadata.Constructors, structMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods());
-            structMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: structMetadata);
             structMetadata.GenericParameters = ReadGenericParameters(typeDef.GetGenericParameters());
+
+            structMetadata.BaseType = ReadBaseType(typeDef.BaseType);
+            structMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), structMetadata.GenericParameters);
+            structMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), structMetadata.GenericParameters);
+            (structMetadata.Constructors, structMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), structMetadata.GenericParameters);
+            structMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: structMetadata);
             structMetadata.CustomAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
 
             return structMetadata;
@@ -452,19 +453,7 @@ namespace MetadataAnalysis
             ProtectionLevel protectionLevel = ReadProtectionLevel(typeDef.Attributes);
             bool isAbstract = ReadAbstract(typeDef.Attributes);
             bool isSealed = ReadSealed(typeDef.Attributes);
-
-            var members = new List<EnumMemberMetadata>();
             PrimitiveTypeCode underlyingEnumType = PrimitiveTypeCode.Int32;
-            foreach (FieldMetadata field in ReadFieldMetadata(typeDef.GetFields()).Values)
-            {
-                if (field.Name == DEFAULT_ENUM_MEMBER_NAME)
-                {
-                    underlyingEnumType = PrimitiveTypeTable[Type.GetType(field.Type.FullName)];
-                    continue;
-                }
-
-                members.Add(new EnumMemberMetadata(field.Name));
-            }
 
             var enumMetadata = new EnumMetadata(
                 name,
@@ -477,12 +466,26 @@ namespace MetadataAnalysis
             };
 
             _typeMetadataCache.Add(fullName, enumMetadata);
-            enumMetadata.BaseType = LoadedTypes.EnumTypeMetadata;
-            enumMetadata.Fields = ReadFieldMetadata(typeDef.GetFields());
-            enumMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties());
-            (enumMetadata.Constructors, enumMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods());
-            enumMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: enumMetadata);
+
             enumMetadata.GenericParameters = ReadGenericParameters(typeDef.GetGenericParameters());
+
+            var members = new List<EnumMemberMetadata>();
+            foreach (FieldMetadata field in ReadFieldMetadata(typeDef.GetFields(), enumMetadata.GenericParameters).Values)
+            {
+                if (field.Name == DEFAULT_ENUM_MEMBER_NAME)
+                {
+                    underlyingEnumType = PrimitiveTypeTable[Type.GetType(field.Type.FullName)];
+                    continue;
+                }
+
+                members.Add(new EnumMemberMetadata(field.Name));
+            }
+
+            enumMetadata.BaseType = LoadedTypes.EnumTypeMetadata;
+            enumMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), enumMetadata.GenericParameters);
+            (enumMetadata.Constructors, enumMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), enumMetadata.GenericParameters);
+            enumMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: enumMetadata);
+            enumMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), enumMetadata.GenericParameters);
             enumMetadata.CustomAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
             enumMetadata.Members = members.ToImmutableArray();
 
@@ -759,7 +762,7 @@ namespace MetadataAnalysis
         private IImmutableList<GenericParameterMetadata> ReadGenericParameters(
             IEnumerable<GenericParameterHandle> genericParameterHandles)
         {
-            var uninstantiatedParameters = new List<GenericParameterMetadata>();
+            var genericParameters = new List<GenericParameterMetadata>();
             foreach (GenericParameterHandle gpHandle in genericParameterHandles)
             {
                 GenericParameter genericParameter = _mdReader.GetGenericParameter(gpHandle);
@@ -780,10 +783,10 @@ namespace MetadataAnalysis
                         genericParameter.Attributes);
                 }
 
-                uninstantiatedParameters.Add(genericParameterMetadata);
+                genericParameters.Add(genericParameterMetadata);
             }
 
-            return uninstantiatedParameters.ToImmutableArray();
+            return genericParameters.ToImmutableArray();
         }
 
         /// <summary>
@@ -791,7 +794,9 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="fieldHandles">the field handles to read metadata information of.</param>
         /// <returns>a dictionary of field metadata information keyed by field name.</returns>
-        private IImmutableDictionary<string, FieldMetadata> ReadFieldMetadata(IEnumerable<FieldDefinitionHandle> fieldHandles)
+        private IImmutableDictionary<string, FieldMetadata> ReadFieldMetadata(
+            IEnumerable<FieldDefinitionHandle> fieldHandles,
+            IImmutableList<GenericParameterMetadata> typeGenericParameters)
         {
             var fields = new Dictionary<string, FieldMetadata>();
             foreach (FieldDefinitionHandle fdHandle in fieldHandles)
@@ -811,7 +816,9 @@ namespace MetadataAnalysis
                 )
                 {
                     // TODO: Decode the field signature. This may be of the object's type itself...
-                    Type = fieldDef.DecodeSignature(_signatureProvider, null)
+                    Type = fieldDef.DecodeSignature(
+                        _signatureProvider,
+                        new TypeMetadataGenericContext(typeGenericParameters, null))
                 };
                 fields.Add(fieldMetadata.Name, fieldMetadata);
             }
@@ -824,7 +831,9 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="propertyHandles">the property handles to read metadata from.</param>
         /// <returns>a dictionary of the property metadata objects, keyed by property name.</returns>
-        private IImmutableDictionary<string, PropertyMetadata> ReadPropertyMetadata(IEnumerable<PropertyDefinitionHandle> propertyHandles)
+        private IImmutableDictionary<string, PropertyMetadata> ReadPropertyMetadata(
+            IEnumerable<PropertyDefinitionHandle> propertyHandles,
+            IImmutableList<GenericParameterMetadata> typeGenericParameters)
         {
             var properties = new Dictionary<string, PropertyMetadata>();
             foreach (PropertyDefinitionHandle propHandle in propertyHandles)
@@ -834,7 +843,9 @@ namespace MetadataAnalysis
 
                 string propertyName = _mdReader.GetString(propertyDef.Name);
 
-                MethodSignature<TypeMetadata> propertySignature = propertyDef.DecodeSignature(_signatureProvider, null);
+                MethodSignature<TypeMetadata> propertySignature = propertyDef.DecodeSignature(
+                    _signatureProvider,
+                    new TypeMetadataGenericContext(typeGenericParameters, null));
 
                 PropertyGetterMetadata getter = null;
                 if (!accessors.Getter.IsNil)
@@ -895,14 +906,16 @@ namespace MetadataAnalysis
         /// a dictionary of method metadata objects keyed by method name.
         /// </returns>
         private (IImmutableList<ConstructorMetadata>, IImmutableDictionary<string, IImmutableList<MethodMetadata>>)
-            ReadMethodMetadata(IEnumerable<MethodDefinitionHandle> methodHandles)
+            ReadMethodMetadata(
+                IEnumerable<MethodDefinitionHandle> methodHandles,
+                IImmutableList<GenericParameterMetadata> typeGenericParameters)
         {
             var ctors = new List<ConstructorMetadata>();
             var methods = new Dictionary<string, List<MethodMetadata>>();
 
             foreach (MethodDefinitionHandle methodHandle in methodHandles)
             {
-                MethodMetadata methodMetadata = ReadMethodMetadata(methodHandle);
+                MethodMetadata methodMetadata = ReadMethodMetadata(methodHandle, typeGenericParameters);
 
                 switch (methodMetadata)
                 {
@@ -932,11 +945,16 @@ namespace MetadataAnalysis
             );
         }
 
-        private MethodMetadata ReadMethodMetadata(MethodDefinitionHandle methodDefHandle)
+        private MethodMetadata ReadMethodMetadata(MethodDefinitionHandle methodDefHandle, IImmutableList<GenericParameterMetadata> typeGenericParameters)
         {
             MethodDefinition methodDef = _mdReader.GetMethodDefinition(methodDefHandle);
             string methodName = _mdReader.GetString(methodDef.Name);
-            MethodSignature<TypeMetadata> signature = methodDef.DecodeSignature(_signatureProvider, null);
+
+            IImmutableList<GenericParameterMetadata> methodGenericParameters = ReadGenericParameters(methodDef.GetGenericParameters());
+
+            var genericContext = new TypeMetadataGenericContext(typeGenericParameters, methodGenericParameters);
+
+            MethodSignature<TypeMetadata> signature = methodDef.DecodeSignature(_signatureProvider, genericContext);
 
             if (methodName == CONSTRUCTOR_NAME)
             {

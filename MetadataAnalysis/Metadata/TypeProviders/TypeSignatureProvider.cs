@@ -22,7 +22,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetArrayType(TypeMetadata elementType, ArrayShape shape)
         {
-            throw new NotImplementedException();
+            return ArrayTypeMetadata.CreateArrayFromType(elementType, shape);
         }
 
         public TypeMetadata GetByReferenceType(TypeMetadata elementType)
@@ -42,12 +42,12 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetGenericMethodParameter(TypeMetadataGenericContext genericContext, int index)
         {
-            throw new NotImplementedException();
+            return genericContext.MethodParameters[index].Type;
         }
 
         public TypeMetadata GetGenericTypeParameter(TypeMetadataGenericContext genericContext, int index)
         {
-            throw new NotImplementedException();
+            return genericContext.TypeParameters[index].Type;
         }
 
         public TypeMetadata GetModifiedType(TypeMetadata modifier, TypeMetadata unmodifiedType, bool isRequired)
@@ -73,7 +73,7 @@ namespace MetadataAnalysis.Metadata.TypeProviders
 
         public TypeMetadata GetSZArrayType(TypeMetadata elementType)
         {
-            return ArrayTypeMetadata.CreateArrayFromType(elementType);
+            return ArrayTypeMetadata.CreateArrayFromType(elementType, ArrayTypeMetadata.s_szArrayShape);
         }
 
         public TypeMetadata GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)

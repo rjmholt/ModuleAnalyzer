@@ -1,17 +1,24 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Reflection.Metadata;
 using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata.Array
 {
     public class ArrayTypeMetadata : DefinedTypeMetadata
     {
+        public static readonly ImmutableArray<int> s_szArrayLowerBounds;
+
+        public static readonly ArrayShape s_szArrayShape;
+
         private class ArrayProbeType
         {
         }
 
         static ArrayTypeMetadata()
         {
+            s_szArrayLowerBounds = new [] { 0 }.ToImmutableArray();
+            s_szArrayShape = new ArrayShape(rank: 1, sizes: ImmutableArray<int>.Empty, lowerBounds: s_szArrayLowerBounds);
             s_arrayProbeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(ArrayProbeType));
             s_arrayTypeMetadata = (DefinedTypeMetadata)LoadedTypes.FromType(typeof(ArrayProbeType[]));
         }
@@ -20,7 +27,7 @@ namespace MetadataAnalysis.Metadata.Array
 
         private static DefinedTypeMetadata s_arrayTypeMetadata;
 
-        public static ArrayTypeMetadata CreateArrayFromType(TypeMetadata typeMetadata)
+        public static ArrayTypeMetadata CreateArrayFromType(TypeMetadata typeMetadata, ArrayShape arrayShape)
         {
             var constructors = new List<ConstructorMetadata>();
             foreach (ConstructorMetadata constructorTemplate in s_arrayTypeMetadata.Constructors)
@@ -52,7 +59,7 @@ namespace MetadataAnalysis.Metadata.Array
                 methods.Add(methodEntry.Key, overloadList.ToImmutableArray());
             }
 
-            return new ArrayTypeMetadata(typeMetadata)
+            return new ArrayTypeMetadata(typeMetadata, arrayShape.Rank, arrayShape.LowerBounds, arrayShape.Sizes)
             {
                 NestedTypes = ImmutableDictionary<string, DefinedTypeMetadata>.Empty,
                 Constructors = constructors.ToImmutableArray(),
@@ -196,25 +203,43 @@ namespace MetadataAnalysis.Metadata.Array
             string name,
             string @namespace,
             string fullName,
-            ProtectionLevel protectionLevel)
+            ProtectionLevel protectionLevel,
+            int rank,
+            IImmutableList<int> lowerBounds,
+            IImmutableList<int> sizes)
             : base(name, @namespace, fullName, TypeKind.ArrayType, protectionLevel)
         {
             BaseType = LoadedTypes.ArrayTypeMetadata;
+            Rank = rank;
+            LowerBounds = lowerBounds;
+            Sizes = sizes;
         }
 
         private ArrayTypeMetadata(
-            TypeMetadata underlyingType)
+            TypeMetadata underlyingType,
+            int rank,
+            IImmutableList<int> lowerBounds,
+            IImmutableList<int> sizes)
             : this(
                 underlyingType.Name + "[]",
                 underlyingType.Namespace,
                 underlyingType.FullName + "[]",
-                underlyingType.ProtectionLevel)
+                underlyingType.ProtectionLevel,
+                rank,
+                lowerBounds,
+                sizes)
         {
             UnderlyingType = underlyingType;
             BaseType = LoadedTypes.ArrayTypeMetadata;
         }
 
         public TypeMetadata UnderlyingType { get; internal set; }
+
+        public int Rank { get; }
+
+        public IImmutableList<int> LowerBounds { get; }
+
+        public IImmutableList<int> Sizes { get; }
 
         internal override TypeMetadata InstantiateGenerics(IImmutableList<TypeMetadata> genericArguments)
         {

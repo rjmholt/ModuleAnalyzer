@@ -35,7 +35,7 @@ namespace MetadataAnalysis
             Type objectType = typeof(object);
             Type valueType = typeof(ValueType);
             Type enumType = typeof(Enum);
-            Type typeType = typeof(Type);
+            Type arrayType = typeof(System.Array);
 
             var objectTypeMetadata = new ClassMetadata(
                 objectType.Name,
@@ -70,13 +70,27 @@ namespace MetadataAnalysis
                 BaseType = valueTypeMetadata
             };
 
+            var arrayTypeMetadata = new ClassMetadata(
+                arrayType.Name,
+                arrayType.Namespace,
+                arrayType.FullName,
+                ProtectionLevel.Public,
+                isAbstract: true,
+                isSealed: false
+            )
+            {
+                BaseType = objectTypeMetadata
+            };
+
             ObjectTypeMetadata = objectTypeMetadata;
             ValueTypeMetadata  = valueTypeMetadata;
             EnumTypeMetadata   = enumTypeMetadata;
+            ArrayTypeMetadata = arrayTypeMetadata;
 
             s_typeCache.TryAdd(objectType, objectTypeMetadata);
             s_typeCache.TryAdd(valueType, valueTypeMetadata);
             s_typeCache.TryAdd(enumType, enumTypeMetadata);
+            s_typeCache.TryAdd(arrayType, arrayTypeMetadata);
 
             objectTypeMetadata.NestedTypes = GetNestedTypeMetadata(objectType);
             objectTypeMetadata.Constructors = GetConstructorMetadata(objectType);
@@ -97,7 +111,6 @@ namespace MetadataAnalysis
             enumTypeMetadata.Methods = GetMethodMetadata(enumType);
 
             TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
-            ArrayTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(System.Array));
             VoidTypeMetadata = (StructMetadata)LoadedTypes.FromType(typeof(void));
 
             // Primitive types to load into the type cache
@@ -256,7 +269,10 @@ namespace MetadataAnalysis
                 arrayType.Name,
                 arrayType.Namespace,
                 GetLongTypeName(arrayType),
-                GetProtectionLevel(arrayType))
+                GetProtectionLevel(arrayType),
+                arrayType.GetArrayRank(),
+                lowerBounds: ImmutableArray<int>.Empty,
+                sizes: ImmutableArray<int>.Empty)
             {
                 UnderlyingType = underlyingType,
                 BaseType = LoadedTypes.ArrayTypeMetadata,

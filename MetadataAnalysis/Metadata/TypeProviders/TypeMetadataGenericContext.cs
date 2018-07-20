@@ -1,19 +1,20 @@
 using System.Collections.Immutable;
+using MetadataAnalysis.Metadata.Generic;
 
 namespace MetadataAnalysis.Metadata.TypeProviders
 {
     public class TypeMetadataGenericContext
     {
         public TypeMetadataGenericContext(
-            ImmutableArray<TypeMetadata> typeParameters,
-            ImmutableArray<TypeMetadata> methodParameters)
+            IImmutableList<GenericParameterMetadata> typeParameters,
+            IImmutableList<GenericParameterMetadata> methodParameters)
         {
             TypeParameters = typeParameters;
             MethodParameters = methodParameters;
         }
 
-        public ImmutableArray<TypeMetadata> TypeParameters { get; }
+        public IImmutableList<GenericParameterMetadata> TypeParameters { get; }
 
-        public ImmutableArray<TypeMetadata> MethodParameters { get; }
+        public IImmutableList<GenericParameterMetadata> MethodParameters { get; }
     }
 }
