@@ -53,7 +53,7 @@ namespace MetadataAnalysis
         }
         private static IDictionary<Type, PrimitiveTypeCode> s_primitiveTypeTable;
 
-        public static TypeCode ConvertEnumUnderlyingTypeCode(PrimitiveTypeCode typeCode)
+        internal static TypeCode ConvertEnumUnderlyingTypeCode(PrimitiveTypeCode typeCode)
         {
             switch (typeCode)
             {
@@ -569,9 +569,9 @@ namespace MetadataAnalysis
                     AssemblyReference asmRef = _mdReader.GetAssemblyReference((AssemblyReferenceHandle)typeRef.ResolutionScope);
                     string fullyQualifiedAsmName = GetFullyQualifiedAsmName(
                         _mdReader.GetString(asmRef.Name),
-                        asmRef.Culture.IsNil ? null : _mdReader.GetString(asmRef.Culture),
-                        asmRef.PublicKeyOrToken.IsNil ? null : _mdReader.GetBlobBytes(asmRef.PublicKeyOrToken),
-                        asmRef.Version);
+                        null, // asmRef.Culture.IsNil ? null : _mdReader.GetString(asmRef.Culture),
+                        null, // asmRef.PublicKeyOrToken.IsNil ? null : _mdReader.GetBlobBytes(asmRef.PublicKeyOrToken),
+                        null); // asmRef.Version);
                     
                     Assembly asm;
                     try

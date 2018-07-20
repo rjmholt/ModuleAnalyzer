@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
@@ -6,6 +6,8 @@ MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetadataAnalysis", "MetadataAnalysis\MetadataAnalysis.csproj", "{BC35D6F3-C235-4BE1-99B0-BC1493FA5AE1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetadataAnalysis.Tests", "MetadataAnalysis.Tests\MetadataAnalysis.Tests.csproj", "{338CA2CE-D07E-4725-B7C0-56B37741836D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetadataDump", "MetadataDump\MetadataDump.csproj", "{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,5 +46,17 @@ Global
 		{338CA2CE-D07E-4725-B7C0-56B37741836D}.Release|x64.Build.0 = Release|x64
 		{338CA2CE-D07E-4725-B7C0-56B37741836D}.Release|x86.ActiveCfg = Release|x86
 		{338CA2CE-D07E-4725-B7C0-56B37741836D}.Release|x86.Build.0 = Release|x86
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|x64.Build.0 = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Debug|x86.Build.0 = Debug|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|Any CPU.Build.0 = Release|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|x64.ActiveCfg = Release|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|x64.Build.0 = Release|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|x86.ActiveCfg = Release|Any CPU
+		{37A18226-5DAB-47B9-A3FD-ED4CB49BB471}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
