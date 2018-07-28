@@ -19,6 +19,26 @@ namespace MetadataAnalysis
     /// </summary>
     public class MetadataAnalyzer : IDisposable
     {
+        public static MetadataAnalyzer Create(
+            Stream dllByteStream,
+            IEnumerable<TypeMetadata> knownTypes = null,
+            IEnumerable<string> dllPaths = null)
+        {
+            var peReader = new PEReader(dllByteStream);
+
+            if (!peReader.HasMetadata)
+            {
+                throw new BadImageFormatException("No metadata in given portable executable reader");
+            }
+
+            Dictionary<string, TypeMetadata> preLoadedTypes = knownTypes?.ToDictionary(tm => tm.FullName, tm => tm)
+                ?? new Dictionary<string, TypeMetadata>();
+
+            IImmutableList<string> dllSearchPaths = dllPaths?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+
+            return new MetadataAnalyzer(peReader, preLoadedTypes, dllSearchPaths);
+        }
+
         private static IDictionary<Type, PrimitiveTypeCode> PrimitiveTypeTable
         {
             get
@@ -119,11 +139,17 @@ namespace MetadataAnalysis
         /// </summary>
         private readonly Dictionary<string, TypeMetadata> _typeMetadataCache;
 
+        private readonly IImmutableList<string> _dllSearchPaths;
+
         /// <summary>
         /// Construct a MetadataAnalyzer around a portable executable reader instance.
         /// </summary>
         /// <param name="peReader">the portable executable reader to read metadata from.</param>
-        public MetadataAnalyzer(PEReader peReader)
+        /// <param name="knownTypes">already parsed types that the IL we are parsing may depend on.</param>
+        private MetadataAnalyzer(
+            PEReader peReader,
+            Dictionary<string, TypeMetadata> typeDictionary,
+            IImmutableList<string> dllPaths)
         {
             _peReader = peReader;
 
@@ -135,21 +161,7 @@ namespace MetadataAnalysis
             _mdReader = _peReader.GetMetadataReader();
             _signatureProvider = new TypeSignatureProvider(this);
             // Start with an empty cache
-            _typeMetadataCache = new Dictionary<string, TypeMetadata>();
-        }
-
-        /// <summary>
-        /// Construct a MetadataAnalyzer around a portable executable reader
-        /// using a pre-loaded collection of type metadata objects, so that
-        /// multiple DLLs can be parsed and the information passed around.
-        /// </summary>
-        /// <param name="peReader">the portable executable reader wrapping the DLL to parse.</param>
-        /// <param name="knownTypes">already parsed types that the IL we are parsing may depend on.</param>
-        public MetadataAnalyzer(PEReader peReader, ICollection<TypeMetadata> knownTypes)
-        {
-            _peReader = peReader;
-            _mdReader = _peReader.GetMetadataReader();
-            _typeMetadataCache = knownTypes.ToDictionary(tm => tm.FullName, tm => tm);
+            _typeMetadataCache = typeDictionary;
         }
 
         /// <summary>
