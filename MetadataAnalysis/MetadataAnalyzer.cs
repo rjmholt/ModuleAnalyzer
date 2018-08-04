@@ -22,6 +22,7 @@ namespace MetadataAnalysis
         public static MetadataAnalyzer Create(
             Stream dllByteStream,
             IEnumerable<TypeMetadata> knownTypes = null,
+            IDictionary<string, AssemblyMetadata> knownAssemblies = null,
             IEnumerable<string> dllPaths = null)
         {
             var peReader = new PEReader(dllByteStream);
@@ -34,9 +35,13 @@ namespace MetadataAnalysis
             Dictionary<string, TypeMetadata> preLoadedTypes = knownTypes?.ToDictionary(tm => tm.FullName, tm => tm)
                 ?? new Dictionary<string, TypeMetadata>();
 
+            Dictionary<string, AssemblyMetadata> preLoadedAssemblies = knownAssemblies != null
+                ? new Dictionary<string, AssemblyMetadata>(knownAssemblies)
+                : new Dictionary<string, AssemblyMetadata>();
+
             IImmutableList<string> dllSearchPaths = dllPaths?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
 
-            return new MetadataAnalyzer(peReader, preLoadedTypes, dllSearchPaths);
+            return new MetadataAnalyzer(peReader, preLoadedTypes, preLoadedAssemblies, new DllPathCache(dllSearchPaths));
         }
 
         private static IDictionary<Type, PrimitiveTypeCode> PrimitiveTypeTable
@@ -139,7 +144,9 @@ namespace MetadataAnalysis
         /// </summary>
         private readonly Dictionary<string, TypeMetadata> _typeMetadataCache;
 
-        private readonly IImmutableList<string> _dllSearchPaths;
+        private readonly Dictionary<string, AssemblyMetadata> _readDlls;
+
+        private readonly DllPathCache _dllPathCache;
 
         /// <summary>
         /// Construct a MetadataAnalyzer around a portable executable reader instance.
@@ -149,7 +156,8 @@ namespace MetadataAnalysis
         private MetadataAnalyzer(
             PEReader peReader,
             Dictionary<string, TypeMetadata> typeDictionary,
-            IImmutableList<string> dllPaths)
+            Dictionary<string, AssemblyMetadata> asmDictionary,
+            DllPathCache dllPathCache)
         {
             _peReader = peReader;
 
@@ -160,8 +168,9 @@ namespace MetadataAnalysis
 
             _mdReader = _peReader.GetMetadataReader();
             _signatureProvider = new TypeSignatureProvider(this);
-            // Start with an empty cache
             _typeMetadataCache = typeDictionary;
+            _readDlls = asmDictionary;
+            _dllPathCache = dllPathCache;
         }
 
         /// <summary>
@@ -171,13 +180,16 @@ namespace MetadataAnalysis
         /// a readonly metadata object representing the entirety of the assembly and
         /// all the types defined within it.
         /// </returns>
-        public AssemblyMetadata GetDefinedAssembly()
+        public AssemblyMetadata GetDefinedAssembly(
+            out IImmutableDictionary<string, AssemblyMetadata> readAssemblies)
         {
             AssemblyDefinition asmDef = _mdReader.GetAssemblyDefinition();
             
             string name = _mdReader.GetString(asmDef.Name);
             string culture = _mdReader.GetString(asmDef.Culture);
             ImmutableArray<byte> publicKey = _mdReader.GetBlobContent(asmDef.PublicKey);
+
+            readAssemblies = _readDlls.ToImmutableDictionary();
 
             return new AssemblyMetadata(
                 name,
@@ -546,12 +558,12 @@ namespace MetadataAnalysis
                 return TypeKind.Enum;
             }
 
-            if (TryGetCachedType(fullName, out TypeMetadata typeMetadata))
+            if (TryLookupTypeReference(typeRef, out TypeMetadata typeMetadata))
             {
                 return GetBaseTypeKind(typeMetadata);
             }
 
-            throw new Exception($"Unable to find base type of type: {fullName}");
+            throw new Exception($"Unable to find base type: {fullName}");
         }
 
         /// <summary>
@@ -560,51 +572,89 @@ namespace MetadataAnalysis
         /// <param name="typeRef">the type reference to find a metadata entry for</param>
         /// <param name="typeMetadata">the type metadata entry to pass out</param>
         /// <returns>true if the type was found, false otherwise</returns>
-        internal bool TryLookupTypeReference(TypeReference typeRef, out TypeMetadata typeMetadata)
+        internal bool TryLookupTypeReference(
+            TypeReference typeRef,
+            out TypeMetadata typeMetadata,
+            bool useStrictAsmConstraints = false)
         {
             // First look into the cache
 
             // The full type name
             string typeName = _mdReader.GetString(typeRef.Name);
             string typeNamespace = _mdReader.GetString(typeRef.Namespace);
-            string fullTypeName = typeNamespace + "." + typeName;
+            string fullTypeName = String.IsNullOrEmpty(typeNamespace) ? typeName : typeNamespace + "." + typeName;
 
             if (TryGetCachedType(fullTypeName, out typeMetadata))
             {
                 return true;
             }
 
-            // If we don't have the type, we will have to try and load the assembly
-            switch (typeRef.ResolutionScope.Kind)
+            if (typeRef.ResolutionScope.Kind == HandleKind.AssemblyReference)
             {
-                case HandleKind.AssemblyReference:
-                    AssemblyReference asmRef = _mdReader.GetAssemblyReference((AssemblyReferenceHandle)typeRef.ResolutionScope);
-                    string fullyQualifiedAsmName = GetFullyQualifiedAsmName(
-                        _mdReader.GetString(asmRef.Name),
-                        null, // asmRef.Culture.IsNil ? null : _mdReader.GetString(asmRef.Culture),
-                        null, // asmRef.PublicKeyOrToken.IsNil ? null : _mdReader.GetBlobBytes(asmRef.PublicKeyOrToken),
-                        null); // asmRef.Version);
-                    
-                    Assembly asm;
-                    try
-                    {
-                        asm = Assembly.Load(fullyQualifiedAsmName);
-                    }
-                    catch
-                    {
-                        typeMetadata = null;
-                        return false;
-                    }
+                AssemblyReference asmRef = _mdReader.GetAssemblyReference((AssemblyReferenceHandle)typeRef.ResolutionScope);
+                string fullyQualifiedAsmName;
+                string asmName = _mdReader.GetString(asmRef.Name);
+                if (useStrictAsmConstraints)
+                {
+                    fullyQualifiedAsmName = GetFullyQualifiedAsmName(
+                    asmName,
+                    asmRef.Culture.IsNil ? null : _mdReader.GetString(asmRef.Culture),
+                    asmRef.PublicKeyOrToken.IsNil ? null : _mdReader.GetBlobBytes(asmRef.PublicKeyOrToken),
+                    asmRef.Version);
+                }
+                else
+                {
+                    fullyQualifiedAsmName = GetFullyQualifiedAsmName(
+                    asmName,
+                    null,
+                    null,
+                    null);
+                }
 
-                    Type type = asm.GetType(fullTypeName);
-                    if (type == null)
+                // First see if the assembly is on the paths given to search on
+                if (_dllPathCache.TryFindDll(asmName, out FileInfo asmFile))
+                {
+                    using (FileStream asmStream = asmFile.OpenRead())
+                    using (PEReader asmPEReader = new PEReader(asmStream))
                     {
-                        typeMetadata = null;
-                        return false;
-                    }
+                        var asmAnalyzer = new MetadataAnalyzer(
+                            asmPEReader,
+                            _typeMetadataCache,
+                            _readDlls,
+                            _dllPathCache);
+                            
+                        AssemblyMetadata asmMetadata = asmAnalyzer.GetDefinedAssembly(
+                            out IImmutableDictionary<string, AssemblyMetadata> unused_readAsms);
 
-                    typeMetadata = LoadedTypes.FromType(type);
-                    return true;
+                        if (asmMetadata.TypeDefinitions.TryGetValue(fullTypeName, out DefinedTypeMetadata readType))
+                        {
+                            typeMetadata = readType;
+                            return true;
+                        }
+                    }
+                }
+                
+                // Then look to see if it's already loaded
+                Assembly asm;
+                try
+                {
+                    asm = Assembly.Load(fullyQualifiedAsmName);
+                }
+                catch
+                {
+                    typeMetadata = null;
+                    return false;
+                }
+
+                Type type = asm.GetType(fullTypeName);
+                if (type == null)
+                {
+                    typeMetadata = null;
+                    return false;
+                }
+
+                typeMetadata = LoadedTypes.FromType(type);
+                return true;
             }
 
             return false;
@@ -737,7 +787,6 @@ namespace MetadataAnalysis
         {
             return _mdReader.GetString(typeRef.Namespace) + "." + _mdReader.GetString(typeRef.Name);
         }
-
 
         /// <summary>
         /// Read the type metadata of the base type of a type definition.
