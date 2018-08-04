@@ -18,8 +18,7 @@ namespace MetadataAnalysis.Tests
         public TypeTest()
         {
             _dllFile = File.OpenRead(s_assetPath);
-            _dllReader = new PEReader(_dllFile);
-            _metadataAnalyzer = new MetadataAnalyzer(_dllReader);
+            _metadataAnalyzer = MetadataAnalyzer.Create(_dllFile);
 
             Console.WriteLine("PID: " + System.Diagnostics.Process.GetCurrentProcess().Id);
             Console.ReadKey();
