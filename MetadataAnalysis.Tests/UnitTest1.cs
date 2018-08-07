@@ -40,9 +40,9 @@ namespace MetadataAnalysis.Tests
             {
                 if (disposing)
                 {
-                    _metadataAnalyzer.Dispose();
-                    _dllReader.Dispose();
-                    _dllFile.Dispose();
+                    _metadataAnalyzer?.Dispose();
+                    _dllReader?.Dispose();
+                    _dllFile?.Dispose();
                 }
 
                 disposedValue = true;

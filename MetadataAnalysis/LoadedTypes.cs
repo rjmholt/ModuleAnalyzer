@@ -95,19 +95,19 @@ namespace MetadataAnalysis
             objectTypeMetadata.NestedTypes = GetNestedTypeMetadata(objectType);
             objectTypeMetadata.Constructors = GetConstructorMetadata(objectType);
             objectTypeMetadata.Fields = GetFieldMetadata(objectType);
-            objectTypeMetadata.Properties = GetPropertyMetadata(objectType);
+            (objectTypeMetadata.Indexers, objectTypeMetadata.Properties) = GetPropertyMetadata(objectType);
             objectTypeMetadata.Methods = GetMethodMetadata(objectType);
 
             valueTypeMetadata.NestedTypes = GetNestedTypeMetadata(valueType);
             valueTypeMetadata.Constructors = GetConstructorMetadata(valueType);
             valueTypeMetadata.Fields = GetFieldMetadata(valueType);
-            valueTypeMetadata.Properties = GetPropertyMetadata(valueType);
+            (valueTypeMetadata.Indexers, valueTypeMetadata.Properties) = GetPropertyMetadata(valueType);
             valueTypeMetadata.Methods = GetMethodMetadata(valueType);
             
             enumTypeMetadata.NestedTypes = GetNestedTypeMetadata(enumType);
             enumTypeMetadata.Constructors = GetConstructorMetadata(enumType);
             enumTypeMetadata.Fields = GetFieldMetadata(enumType);
-            enumTypeMetadata.Properties = GetPropertyMetadata(enumType);
+            (enumTypeMetadata.Indexers, enumTypeMetadata.Properties) = GetPropertyMetadata(enumType);
             enumTypeMetadata.Methods = GetMethodMetadata(enumType);
 
             TypeTypeMetadata = (ClassMetadata)LoadedTypes.FromType(typeof(Type));
@@ -283,7 +283,7 @@ namespace MetadataAnalysis
             arrayMetadata.Constructors = GetConstructorMetadata(arrayType);
             arrayMetadata.CustomAttributes = GetCustomAttributes(arrayType.GetCustomAttributesData());
             arrayMetadata.Fields = GetFieldMetadata(arrayType);
-            arrayMetadata.Properties = GetPropertyMetadata(arrayType);
+            (arrayMetadata.Indexers, arrayMetadata.Properties) = GetPropertyMetadata(arrayType);
             arrayMetadata.Methods = GetMethodMetadata(arrayType);
 
             return arrayMetadata;
@@ -306,7 +306,7 @@ namespace MetadataAnalysis
             classMetadata.DeclaringType = (DefinedTypeMetadata)FromType(classType.DeclaringType);
             classMetadata.Constructors = GetConstructorMetadata(classType);
             classMetadata.Fields = GetFieldMetadata(classType);
-            classMetadata.Properties = GetPropertyMetadata(classType);
+            (classMetadata.Indexers, classMetadata.Properties) = GetPropertyMetadata(classType);
             classMetadata.Methods = GetMethodMetadata(classType);
 
             return classMetadata;
@@ -328,7 +328,7 @@ namespace MetadataAnalysis
             structMetadata.DeclaringType = (DefinedTypeMetadata)FromType(structType.DeclaringType);
             structMetadata.Constructors = GetConstructorMetadata(structType);
             structMetadata.Fields = GetFieldMetadata(structType);
-            structMetadata.Properties = GetPropertyMetadata(structType);
+            (structMetadata.Indexers, structMetadata.Properties) = GetPropertyMetadata(structType);
             structMetadata.Methods = GetMethodMetadata(structType);
 
             return structMetadata;
@@ -354,7 +354,7 @@ namespace MetadataAnalysis
             enumMetadata.DeclaringType = (DefinedTypeMetadata)FromType(enumType.DeclaringType);
             enumMetadata.Members = GetEnumMemberMetadata(enumType, enumMetadata);
             enumMetadata.Fields = GetFieldMetadata(enumType);
-            enumMetadata.Properties = GetPropertyMetadata(enumType);
+            (enumMetadata.Indexers, enumMetadata.Properties) = GetPropertyMetadata(enumType);
             enumMetadata.Methods = GetMethodMetadata(enumType);
             enumMetadata.CustomAttributes = GetCustomAttributes(enumType.GetCustomAttributesData());
 
@@ -502,11 +502,37 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="type">the type to get the properties of.</param>
         /// <returns>a dictionary of properties on the type, keyed by name.</returns>
-        private static IImmutableDictionary<string, PropertyMetadata> GetPropertyMetadata(Type type)
+        private static (IImmutableList<IndexerMetadata>, IImmutableDictionary<string, PropertyMetadata>) GetPropertyMetadata(Type type)
         {
+            var indexers = new List<IndexerMetadata>();
             var properties = new Dictionary<string, PropertyMetadata>();
             foreach (PropertyInfo property in type.GetProperties())
             {
+                if (property.Name == "Item")
+                {
+                    MethodInfo idxGetter = property.GetGetMethod();
+                    MethodInfo idxSetter = property.GetSetMethod();
+
+                    var idxGetterMetadata = idxGetter == null ? null : new IndexerGetterMetadata(
+                        GetProtectionLevel(idxGetter.Attributes),
+                        idxGetter.IsStatic);
+
+                    var idxSetterMetadata = idxSetter == null ? null : new IndexerSetterMetadata(
+                        GetProtectionLevel(idxSetter.Attributes),
+                        idxSetter.IsStatic);
+
+                    var indexer = new IndexerMetadata(ProtectionLevel.Public, false)
+                    {
+                        CustomAttributes = GetCustomAttributes(property.CustomAttributes),
+                        Getter = idxGetterMetadata,
+                        Setter = idxSetterMetadata,
+                        Type = FromType(idxGetter?.ReturnType ?? idxSetter?.GetParameters()[1].ParameterType),
+                        IndexType = FromType(idxGetter?.GetParameters()[0].ParameterType ?? idxSetter?.GetParameters()[0].ParameterType)
+                    };
+
+                    indexers.Add(indexer);
+                }
+
                 MethodInfo getter = property.GetGetMethod();
                 MethodInfo setter = property.GetSetMethod();
 
@@ -545,7 +571,7 @@ namespace MetadataAnalysis
                 properties.Add(property.Name, propertyMetadata);
             }
 
-            return properties.ToImmutableDictionary();
+            return (indexers.ToImmutableArray(), properties.ToImmutableDictionary());
         }
 
         private static bool ReadPropertyIsStatic(MethodInfo getter, MethodInfo setter)

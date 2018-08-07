@@ -125,6 +125,8 @@ namespace MetadataAnalysis
 
         private const string CONSTRUCTOR_NAME = ".ctor";
 
+        private const string INDEXER_NAME = "Item";
+
         /// <summary>
         /// The portable executable reader required to
         /// read metadata (not used directly, but must not be disposed while we are reading).
@@ -425,7 +427,7 @@ namespace MetadataAnalysis
             classMetadata.GenericParameters = ReadGenericParameters(typeDef.GetGenericParameters());
             classMetadata.BaseType = ReadBaseType(typeDef.BaseType);
             classMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), classMetadata.GenericParameters);
-            classMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), classMetadata.GenericParameters);
+            (classMetadata.Indexers, classMetadata.Properties) = ReadPropertyMetadata(typeDef.GetProperties(), classMetadata.GenericParameters);
             (classMetadata.Constructors, classMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), classMetadata.GenericParameters);
             classMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: classMetadata);
             classMetadata.CustomAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
@@ -459,7 +461,7 @@ namespace MetadataAnalysis
 
             structMetadata.BaseType = ReadBaseType(typeDef.BaseType);
             structMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), structMetadata.GenericParameters);
-            structMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), structMetadata.GenericParameters);
+            (structMetadata.Indexers, structMetadata.Properties) = ReadPropertyMetadata(typeDef.GetProperties(), structMetadata.GenericParameters);
             (structMetadata.Constructors, structMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), structMetadata.GenericParameters);
             structMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: structMetadata);
             structMetadata.CustomAttributes = ReadCustomAttributes(typeDef.GetCustomAttributes());
@@ -506,7 +508,7 @@ namespace MetadataAnalysis
             }
 
             enumMetadata.BaseType = LoadedTypes.EnumTypeMetadata;
-            enumMetadata.Properties = ReadPropertyMetadata(typeDef.GetProperties(), enumMetadata.GenericParameters);
+            (enumMetadata.Indexers, enumMetadata.Properties) = ReadPropertyMetadata(typeDef.GetProperties(), enumMetadata.GenericParameters);
             (enumMetadata.Constructors, enumMetadata.Methods) = ReadMethodMetadata(typeDef.GetMethods(), enumMetadata.GenericParameters);
             enumMetadata.NestedTypes = ReadTypesFromHandles(typeDef.GetNestedTypes(), declaringType: enumMetadata);
             enumMetadata.Fields = ReadFieldMetadata(typeDef.GetFields(), enumMetadata.GenericParameters);
@@ -892,10 +894,11 @@ namespace MetadataAnalysis
         /// </summary>
         /// <param name="propertyHandles">the property handles to read metadata from.</param>
         /// <returns>a dictionary of the property metadata objects, keyed by property name.</returns>
-        private IImmutableDictionary<string, PropertyMetadata> ReadPropertyMetadata(
+        private (IImmutableList<IndexerMetadata>, IImmutableDictionary<string, PropertyMetadata>) ReadPropertyMetadata(
             IEnumerable<PropertyDefinitionHandle> propertyHandles,
             IImmutableList<GenericParameterMetadata> typeGenericParameters)
         {
+            var indexers = new List<IndexerMetadata>();
             var properties = new Dictionary<string, PropertyMetadata>();
             foreach (PropertyDefinitionHandle propHandle in propertyHandles)
             {
@@ -907,6 +910,68 @@ namespace MetadataAnalysis
                 MethodSignature<TypeMetadata> propertySignature = propertyDef.DecodeSignature(
                     _signatureProvider,
                     new TypeMetadataGenericContext(typeGenericParameters, null));
+
+                if (propertyName == INDEXER_NAME)
+                {
+                    TypeMetadata returnType = null;
+                    TypeMetadata indexType = null;
+
+                    IndexerGetterMetadata idxGetter = null;
+                    if (!accessors.Getter.IsNil)
+                    {
+                        MethodDefinition idxGetterDef = _mdReader.GetMethodDefinition(accessors.Getter);
+                        idxGetter = new IndexerGetterMetadata(
+                            ReadProtectionLevel(idxGetterDef.Attributes),
+                            ReadStatic(idxGetterDef.Attributes));
+
+                        MethodSignature<TypeMetadata> getterSignature = idxGetterDef.DecodeSignature(_signatureProvider, null);
+                        returnType = getterSignature.ReturnType;
+                        indexType = getterSignature.ParameterTypes[0];
+                    }
+
+                    IndexerSetterMetadata idxSetter = null;
+                    if (!accessors.Setter.IsNil)
+                    {
+                        MethodDefinition idxSetterDef = _mdReader.GetMethodDefinition(accessors.Setter);
+                        idxSetter = new IndexerSetterMetadata(
+                            ReadProtectionLevel(idxSetterDef.Attributes),
+                            ReadStatic(idxSetterDef.Attributes));
+
+                        if (returnType == null || indexType == null)
+                        {
+                            MethodSignature<TypeMetadata> setterSignature = idxSetterDef.DecodeSignature(_signatureProvider, null);
+                            indexType = setterSignature.ParameterTypes[0];
+                            returnType = setterSignature.ParameterTypes[1];
+                        }
+                    }
+
+                    bool isIdxStatic = false;
+                    if (idxGetter != null)
+                    {
+                        isIdxStatic |= idxGetter.IsStatic;
+                    }
+
+                    if (idxSetter != null)
+                    {
+                        isIdxStatic |= idxSetter.IsStatic;
+                    }
+
+                    ProtectionLevel idxProtectionLevel = GetHighestProtectionLevel(
+                        idxGetter?.ProtectionLevel ?? ProtectionLevel.Private,
+                        idxSetter?.ProtectionLevel ?? ProtectionLevel.Private);
+
+                    var indexer = new IndexerMetadata(idxProtectionLevel, isIdxStatic)
+                    {
+                        CustomAttributes = ReadCustomAttributes(propertyDef.GetCustomAttributes()),
+                        Getter = idxGetter,
+                        Setter= idxSetter,
+                        Type = returnType,
+                        IndexType = indexType,
+                    };
+
+                    indexers.Add(indexer);
+                    continue;
+                }
 
                 PropertyGetterMetadata getter = null;
                 if (!accessors.Getter.IsNil)
@@ -939,7 +1004,7 @@ namespace MetadataAnalysis
                 }
                 if (setter != null)
                 {
-                    isPropertyStatic &= setter.IsStatic;
+                    isPropertyStatic |= setter.IsStatic;
                 }
 
                 var propertyMetadata = new PropertyMetadata(
@@ -950,12 +1015,13 @@ namespace MetadataAnalysis
                     Getter = getter,
                     Setter = setter,
                     CustomAttributes = ReadCustomAttributes(propertyDef.GetCustomAttributes()),
+                    Type = propertySignature.ReturnType,
                 };
 
                 properties.Add(propertyMetadata.Name, propertyMetadata);
             }
 
-            return properties.ToImmutableDictionary();
+            return (indexers.ToImmutableArray(), properties.ToImmutableDictionary());
         }
 
         /// <summary>
