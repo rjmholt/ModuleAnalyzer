@@ -41,6 +41,8 @@ namespace MetadataAnalysis.Metadata
 
         public IImmutableDictionary<string, PropertyMetadata> Properties { get; internal set; }
 
+        public IImmutableList<IndexerMetadata> Indexers { get; internal set; }
+
         public IImmutableDictionary<string, IImmutableList<MethodMetadata>> Methods { get; internal set; }
 
         public IImmutableList<GenericParameterMetadata> GenericParameters { get; internal set; }

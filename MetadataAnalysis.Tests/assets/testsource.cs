@@ -95,6 +95,31 @@ namespace MetadataAnalysis.Test
 
         #endregion /* Properties */
 
+        #region Indexers
+
+        public int this[int x]
+        {
+            get
+            {
+                return x;
+            }
+
+            set
+            {
+
+            }
+        }
+
+        internal object this[double d]
+        {
+            get
+            {
+                return d > 0 ? new object() : new object[0];
+            }
+        }
+
+        #endregion /* Indexers */
+
         #region Methods
 
         public int IntMethod() { return 7; }
