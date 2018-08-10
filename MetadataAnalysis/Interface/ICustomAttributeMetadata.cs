@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Reflection.Metadata;
 
@@ -7,8 +8,8 @@ namespace MetadataAnalysis.Interface
     {
         ITypeMetadata AttributeType { get; }
 
-        IImmutableList<CustomAttributeTypedArgument<ITypeMetadata>> PositionalArguments { get; }
+        IReadOnlyList<CustomAttributeTypedArgument<ITypeMetadata>> PositionalArguments { get; }
 
-        IImmutableList<CustomAttributeNamedArgument<ITypeMetadata>> NamedArguments { get; }
+        IReadOnlyList<CustomAttributeNamedArgument<ITypeMetadata>> NamedArguments { get; }
     }
 }

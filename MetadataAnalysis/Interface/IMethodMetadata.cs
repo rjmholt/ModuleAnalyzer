@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+using System.Collections.Generic;
 
 namespace MetadataAnalysis.Interface
 {
@@ -6,6 +6,6 @@ namespace MetadataAnalysis.Interface
     {
         ITypeMetadata ReturnType { get; }
 
-        IImmutableList<ITypeMetadata> ParameterTypes { get; }
+        IReadOnlyList<ITypeMetadata> ParameterTypes { get; }
     }
 }

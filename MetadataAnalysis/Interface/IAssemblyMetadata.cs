@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Immutable;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace MetadataAnalysis.Interface
@@ -14,12 +14,16 @@ namespace MetadataAnalysis.Interface
 
         AssemblyFlags AssemblyFlags { get; }
 
-        IImmutableList<byte> PublicKey { get; }
+        IReadOnlyList<byte> PublicKey { get; }
 
         AssemblyHashAlgorithm HashAlgorithm { get; }
 
-        IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; }
+        IReadOnlyList<ICustomAttributeMetadata> CustomAttributes { get; }
 
-        IImmutableDictionary<string, ITypeMetadata> DefinedTypes { get; }
+        IReadOnlyDictionary<string, ITypeMetadata> DefinedTypes { get; }
+
+        string Path { get; }
+
+        IReadOnlyDictionary<string, IAssemblyMetadata> ReferencedAssemblies { get; }
     }
 }

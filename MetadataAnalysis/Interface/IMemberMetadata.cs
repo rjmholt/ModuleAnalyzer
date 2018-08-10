@@ -1,4 +1,4 @@
-using System.Collections.Immutable;
+using System.Collections.Generic;
 
 namespace MetadataAnalysis.Interface
 {
@@ -8,8 +8,8 @@ namespace MetadataAnalysis.Interface
 
         ProtectionLevel ProtectionLevel { get; }
 
-        IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; }
+        IReadOnlyList<ICustomAttributeMetadata> CustomAttributes { get; }
 
-        IImmutableList<IGenericParameterMetadata> GenericParameters { get; }
+        IReadOnlyList<IGenericParameterMetadata> GenericParameters { get; }
     }
 }

@@ -1,4 +1,5 @@
-using System.Collections.Immutable;
+
+using System.Collections.Generic;
 
 namespace MetadataAnalysis.Interface
 {
@@ -16,16 +17,16 @@ namespace MetadataAnalysis.Interface
 
         ITypeMetadata BaseType { get; }
 
-        IImmutableList<IConstructorMetadata> Constructors { get; }
+        IReadOnlyList<IConstructorMetadata> Constructors { get; }
 
-        IImmutableDictionary<string, IFieldMetadata> Fields { get; }
+        IReadOnlyDictionary<string, IFieldMetadata> Fields { get; }
 
-        IImmutableDictionary<string, IPropertyMetadata> Properties { get; }
+        IReadOnlyDictionary<string, IPropertyMetadata> Properties { get; }
 
-        IImmutableDictionary<string, IImmutableList<IMethodMetadata>> Methods { get; }
+        IReadOnlyDictionary<string, IReadOnlyList<IMethodMetadata>> Methods { get; }
 
-        IImmutableList<IGenericParameterMetadata> GenericParameters { get; }
+        IReadOnlyList<IGenericParameterMetadata> GenericParameters { get; }
 
-        IImmutableList<ICustomAttributeMetadata> CustomAttributes { get; }
+        IReadOnlyList<ICustomAttributeMetadata> CustomAttributes { get; }
     }
 }
