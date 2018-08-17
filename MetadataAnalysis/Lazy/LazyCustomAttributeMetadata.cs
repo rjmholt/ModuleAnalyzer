@@ -8,13 +8,13 @@ namespace MetadataAnalysis.Lazy
     {
         private readonly MetadataReader _mdReader;
 
-        private readonly CustomAttributeHandle _caHandle;
+        private CustomAttribute _customAttribute;
 
         private ITypeMetadata _attributeType;
 
-        public LazyCustomAttributeMetadata(CustomAttributeHandle caHandle, MetadataReader mdReader)
+        public LazyCustomAttributeMetadata(CustomAttribute customAttribute, MetadataReader mdReader)
         {
-            _caHandle = caHandle;
+            _customAttribute = customAttribute;
             _mdReader = mdReader;
         }
 
@@ -24,7 +24,7 @@ namespace MetadataAnalysis.Lazy
             {
                 if (_attributeType == null)
                 {
-                    _attributeType = LazyTypeMetadata.Create(_caHandle, _mdReader);
+                    _attributeType = LazyTypeMetadata.Create(_customAttribute, _mdReader);
                 }
                 return _attributeType;
             }
