@@ -1,4 +1,7 @@
-namespace MetadataHydrator.Interface
+using System.Collections.Generic;
+using Microsoft.CodeAnalysis;
+
+namespace MetadataHydrator
 {
     public interface ITypeMetadata
     {
@@ -8,9 +11,7 @@ namespace MetadataHydrator.Interface
 
         string FullName { get; }
 
-        TypeKind TypeKind { get; }
-
-        ProtectionLevel ProtectionLevel { get; }
+        Accessibility Accessibility { get; }
 
         ITypeMetadata BaseType { get; }
 
@@ -21,5 +22,7 @@ namespace MetadataHydrator.Interface
         IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> Methods { get; }
 
         IReadOnlyDictionary<string, ITypeMetadata> NestedTypes { get; }
+
+        IAssemblyMetadata Assembly { get; }
     }
 }

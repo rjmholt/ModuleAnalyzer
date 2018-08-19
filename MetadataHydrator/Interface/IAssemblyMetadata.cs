@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+
 namespace MetadataHydrator
 {
-    public interface IAssemblyDefinition
+    public interface IAssemblyMetadata
     {
         string Culture { get; }
 
@@ -14,12 +18,12 @@ namespace MetadataHydrator
 
         Version Version { get; }
 
-        IReadOnlyDictionary<string, IAssemblyDefinition> RequiredAssemblies { get; }
+        IReadOnlyDictionary<string, IAssemblyMetadata> RequiredAssemblies { get; }
 
         string Path { get; }
 
         IReadOnlyDictionary<string, ITypeMetadata> DefinedTypes { get; }
 
-        IReadOnlyCollection<ICustomAttribute> CustomAttributes { get; }
+        IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
     }
 }

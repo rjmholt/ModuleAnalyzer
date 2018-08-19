@@ -1,6 +1,9 @@
-namespace MetadataHydrator.Interface
+using System.Collections.Generic;
+using System.Reflection.Metadata;
+
+namespace MetadataHydrator
 {
-    public interface ICustomAttribute
+    public interface ICustomAttributeMetadata
     {
         ITypeMetadata AttributeType { get; }
 
