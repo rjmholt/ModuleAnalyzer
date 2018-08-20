@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 
 namespace MetadataHydrator
@@ -20,9 +21,11 @@ namespace MetadataHydrator
 
         IReadOnlyDictionary<string, IAssemblyMetadata> RequiredAssemblies { get; }
 
-        string Path { get; }
+        FileInfo File { get; }
 
-        IReadOnlyDictionary<string, ITypeMetadata> DefinedTypes { get; }
+        IReadOnlyDictionary<string, ITypeMetadata> TypeDefinitions { get; }
+
+        IReadOnlyDictionary<string, ITypeMetadata> TypeReferences { get; }
 
         IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
     }

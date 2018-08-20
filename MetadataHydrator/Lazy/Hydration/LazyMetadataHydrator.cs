@@ -5,24 +5,18 @@ namespace MetadataHydrator.Lazy
 {
     public class LazyMetadataHydrator : IMetadataHydrator
     {
-        private readonly AssemblyCache _assemblyCache;
-
-        private readonly TypeResolver _typeResolver;
+        private readonly AssemblyResolver _assemblyResolver;
 
         public LazyMetadataHydrator()
         {
-            _assemblyCache = new AssemblyCache();
-            _typeResolver = new TypeResolver();
+            _assemblyResolver = new AssemblyResolver();
         }
 
         public IAssemblyMetadata ReadAssembly(string assemblyPath)
         {
-            LazyAssemblyHydrator assemblyHydrator = LazyAssemblyHydrator.Create(
-                assemblyPath,
-                _typeResolver,
-                _assemblyCache);
-
-            return assemblyHydrator.ReadAssembly();
+            AssemblyDirectoryResolver asmDirResolver = _assemblyResolver.GetResolverForPath(assemblyPath);
+            string assemblyFileName = Path.GetFileName(assemblyPath);
+            return asmDirResolver.GetAssemblyByFileName(assemblyFileName);
         }
     }
 }

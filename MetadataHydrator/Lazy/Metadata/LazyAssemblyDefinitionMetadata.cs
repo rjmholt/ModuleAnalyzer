@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
 
@@ -37,7 +38,7 @@ namespace MetadataHydrator.Lazy.Metadata
             {
                 if (_culture == null)
                 {
-                    _culture = _assemblyHydrator.GetAssemblyCulture(_assemblyDefinition);
+                    _culture = _assemblyHydrator.ReadAssemblyCulture(_assemblyDefinition);
                 }
                 return _culture;
             }
@@ -53,7 +54,7 @@ namespace MetadataHydrator.Lazy.Metadata
             {
                 if (_name == null)
                 {
-                    _name = _assemblyHydrator.GetAssemblyName(_assemblyDefinition);
+                    _name = _assemblyHydrator.ReadAssemblyName(_assemblyDefinition);
                 }
                 return _name;
             }
@@ -65,7 +66,7 @@ namespace MetadataHydrator.Lazy.Metadata
             {
                 if (_publicKey == null)
                 {
-                    _publicKey = _assemblyHydrator.GetAssemblyPublicKey(_assemblyDefinition);
+                    _publicKey = _assemblyHydrator.ReadAssemblyPublicKey(_assemblyDefinition);
                 }
                 return _publicKey;
             }
@@ -79,27 +80,27 @@ namespace MetadataHydrator.Lazy.Metadata
             {
                 if (_requiredAssemblies == null)
                 {
-                    _requiredAssemblies = _assemblyHydrator.GetRequiredAssemblies();
+                    _requiredAssemblies = _assemblyHydrator.ReadRequiredAssemblies();
                 }
                 return _requiredAssemblies;
             }
         }
 
-        public string Path
+        public FileInfo File
         {
             get
             {
-                return _assemblyHydrator.AssemblyPath;
+                return _assemblyHydrator.AssemblyFile;
             }
         }
 
-        public IReadOnlyDictionary<string, ITypeMetadata> DefinedTypes
+        public IReadOnlyDictionary<string, ITypeMetadata> TypeDefinitions
         {
             get
             {
                 if (_definedTypes == null)
                 {
-                    _definedTypes = _assemblyHydrator.GetDefinedTypes();
+                    _definedTypes = _assemblyHydrator.ReadDefinedTypes();
                 }
                 return _definedTypes;
             }
@@ -111,10 +112,12 @@ namespace MetadataHydrator.Lazy.Metadata
             {
                 if (_customAttributes == null)
                 {
-                    _customAttributes = _assemblyHydrator.GetCustomAttributes(_assemblyDefinition.GetCustomAttributes());
+                    _customAttributes = _assemblyHydrator.ReadCustomAttributes(_assemblyDefinition.GetCustomAttributes());
                 }
                 return _customAttributes;
             }
         }
+
+        public IReadOnlyDictionary<string, ITypeMetadata> TypeReferences => throw new NotImplementedException();
     }
 }
