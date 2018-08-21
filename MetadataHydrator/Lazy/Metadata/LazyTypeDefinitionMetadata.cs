@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata;
 using Microsoft.CodeAnalysis;
@@ -10,15 +11,15 @@ namespace MetadataHydrator.Lazy.Metadata
 
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
-        private ITypeMetadata _baseType;
+        private readonly Lazy<ITypeMetadata> _baseType;
 
-        private IReadOnlyDictionary<string, IFieldMetadata> _fields;
+        private readonly Lazy<IReadOnlyDictionary<string, IFieldMetadata>> _fields;
 
-        private IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> _properties;
+        private readonly Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>>> _properties;
 
-        private IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> _methods;
+        private readonly Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>>> _methods;
 
-        private IReadOnlyDictionary<string, ITypeMetadata> _nestedTypes;
+        private readonly Lazy<IReadOnlyDictionary<string, ITypeMetadata>> _nestedTypes;
 
         public LazyTypeDefinitionMetadata(
             TypeDefinition typeDefintion,
@@ -31,11 +32,18 @@ namespace MetadataHydrator.Lazy.Metadata
         {
             _typeDefinition = typeDefintion;
             _assemblyHydrator = assemblyHydrator;
+
             Assembly = assembly;
             Name = name;
             Namespace = @namespace;
             FullName = fullName;
             Accessibility = accessibility;
+
+            _baseType = new Lazy<ITypeMetadata>(() => _assemblyHydrator.ReadTypeFromHandle(_typeDefinition.BaseType));
+            _fields = new Lazy<IReadOnlyDictionary<string, IFieldMetadata>>(() => _assemblyHydrator.ReadFields(_typeDefinition.GetFields()));
+            _properties = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>>>(() => _assemblyHydrator.ReadProperties(_typeDefinition.GetProperties()));
+            _methods = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>>>(() => _assemblyHydrator.ReadMethods(_typeDefinition.GetMethods()));
+            _nestedTypes = new Lazy<IReadOnlyDictionary<string, ITypeMetadata>>(() => _assemblyHydrator.ReadTypeDefinitions(_typeDefinition.GetNestedTypes(), enclosingType: this));
         }
 
         public string Name { get; }
@@ -48,62 +56,27 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public ITypeMetadata BaseType
         {
-            get
-            {
-                if (_baseType == null)
-                {
-                    _baseType = _assemblyHydrator.ReadBaseType(_typeDefinition);
-                }
-                return _baseType;
-            }
+            get => _baseType.Value;
         }
 
         public IReadOnlyDictionary<string, IFieldMetadata> Fields
         {
-            get
-            {
-                if (_fields == null)
-                {
-                    _fields = _assemblyHydrator.ReadTypeFields(_typeDefinition);
-                }
-                return _fields;
-            }
+            get => _fields.Value;
         }
 
         public IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> Properties
         {
-            get
-            {
-                if (_properties == null)
-                {
-                    _properties = _assemblyHydrator.ReadTypeProperties(_typeDefinition);
-                }
-                return _properties;
-            }
+            get => _properties.Value;
         }
 
         public IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> Methods
         {
-            get
-            {
-                if (_methods == null)
-                {
-                    _methods = _assemblyHydrator.ReadTypeMethods(_typeDefinition);
-                }
-                return _methods;
-            }
+            get => _methods.Value;
         }
 
         public IReadOnlyDictionary<string, ITypeMetadata> NestedTypes
         {
-            get
-            {
-                if (_nestedTypes == null)
-                {
-                    _nestedTypes = _assemblyHydrator.ReadTypeNestedTypes(_typeDefinition);
-                }
-                return _nestedTypes;
-            }
+            get => _nestedTypes.Value;
         }
 
         public IAssemblyMetadata Assembly { get; }

@@ -7,12 +7,6 @@ namespace MetadataHydrator
     {
         string Name { get; }
 
-        Accessibility Accessibility { get; }
-
         IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
-
-        IReadOnlyCollection<IGenericParameterMetadata> GenericParameters { get; }
-
-        bool IsStatic { get; }
     }
 }

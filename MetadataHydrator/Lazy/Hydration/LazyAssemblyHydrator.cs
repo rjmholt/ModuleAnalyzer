@@ -88,24 +88,14 @@ namespace MetadataHydrator.Lazy
 
         #region Assembly reading methods
 
-        internal string ReadAssemblyCulture(AssemblyDefinition assemblyDefinition)
+        internal string ReadString(StringHandle strHandle)
         {
-            return _mdReader.GetString(assemblyDefinition.Culture);
+            return _mdReader.GetString(strHandle);
         }
 
-        internal string ReadAssemblyCulture(AssemblyReference assemblyReference)
+        internal IReadOnlyCollection<byte> ReadBlob(BlobHandle blobHandle)
         {
-            return _mdReader.GetString(assemblyReference.Culture);
-        }
-
-        internal string ReadAssemblyName(AssemblyDefinition assemblyDefinition)
-        {
-            return _mdReader.GetString(assemblyDefinition.Name);
-        }
-
-        internal IReadOnlyCollection<byte> ReadAssemblyPublicKey(AssemblyDefinition assemblyDefinition)
-        {
-            return _mdReader.GetBlobContent(assemblyDefinition.PublicKey);
+            return _mdReader.GetBlobContent(blobHandle);
         }
 
         internal IReadOnlyCollection<LazyCustomAttributeMetadata> ReadCustomAttributes(IEnumerable<CustomAttributeHandle> caHandles)
@@ -120,10 +110,15 @@ namespace MetadataHydrator.Lazy
             return customAttributes.ToImmutableArray();
         }
 
-        internal IReadOnlyDictionary<string, IAssemblyMetadata> ReadRequiredAssemblies()
+        internal IReadOnlyDictionary<string, IAssemblyMetadata> ReadReferencedAssemblies()
+        {
+            return ReadAssemblyReferences(_mdReader.AssemblyReferences);
+        }
+
+        internal IReadOnlyDictionary<string, IAssemblyMetadata> ReadAssemblyReferences(IEnumerable<AssemblyReferenceHandle> arHandles)
         {
             var requiredAssemblies = new Dictionary<string, IAssemblyMetadata>();
-            foreach (AssemblyReferenceHandle asmRefHandle in _mdReader.AssemblyReferences)
+            foreach (AssemblyReferenceHandle asmRefHandle in arHandles)
             {
                 AssemblyReference assemblyReference = _mdReader.GetAssemblyReference(asmRefHandle);
                 string assemblyName = _mdReader.GetString(assemblyReference.Name);
@@ -171,15 +166,7 @@ namespace MetadataHydrator.Lazy
             TypeDefinition typeDefinition,
             ITypeMetadata enclosingType = null)
         {
-            string name = _mdReader.GetString(typeDefinition.Name);
-
-            string @namespace = typeDefinition.Namespace.IsNil
-                ? null
-                : _mdReader.GetString(typeDefinition.Namespace);
-
-            string fullName = enclosingType == null
-                ? GetTypeFullName(name, @namespace)
-                : GetTypeFullName(name, enclosingType);
+            string fullName = ReadTypeFullName(typeDefinition, out string name, out string @namespace, enclosingType);
 
             Accessibility accessibility = GetAccessibilityFromAttributes(typeDefinition.Attributes);
 
@@ -206,25 +193,24 @@ namespace MetadataHydrator.Lazy
             throw new NotImplementedException("Cannot read nested type without context yet");
         }
 
-        internal ITypeMetadata ReadBaseType(TypeDefinition typeDefinition)
+        internal ITypeMetadata ReadTypeFromHandle(EntityHandle handle)
         {
-            if (typeDefinition.BaseType.IsNil)
+            if (handle.IsNil)
             {
                 return null;
             }
 
-            switch (typeDefinition.BaseType.Kind)
+            switch (handle.Kind)
             {
             case HandleKind.TypeDefinition:
-                TypeDefinition baseTypeDefinition = _mdReader.GetTypeDefinition((TypeDefinitionHandle)typeDefinition.BaseType);
+                TypeDefinition baseTypeDefinition = _mdReader.GetTypeDefinition((TypeDefinitionHandle)handle);
                 return ReadPossiblyNestedTypeDefinition(baseTypeDefinition);
 
             case HandleKind.TypeReference:
-                TypeReference baseTypeReference = _mdReader.GetTypeReference((TypeReferenceHandle)typeDefinition.BaseType);
-                throw new NotImplementedException($"Type reference resolution not yet implemented");
+                return ResolveType((TypeReferenceHandle)handle);
 
             default:
-                throw new Exception($"Unable to process base type handle: {typeDefinition.BaseType}");
+                throw new Exception($"Unable to process type handle: {handle}");
             }
         }
 
@@ -236,11 +222,6 @@ namespace MetadataHydrator.Lazy
         internal string ReadTypeNamespace(TypeDefinition typeDefinition)
         {
             return _mdReader.GetString(typeDefinition.Namespace);
-        }
-
-        internal IReadOnlyDictionary<string, IFieldMetadata> ReadTypeFields(TypeDefinition typeDefinition)
-        {
-            return ReadFields(typeDefinition.GetFields());
         }
 
         internal IReadOnlyDictionary<string, IFieldMetadata> ReadFields(IEnumerable<FieldDefinitionHandle> fdHandles)
@@ -256,25 +237,104 @@ namespace MetadataHydrator.Lazy
 
         internal LazyFieldMetadata ReadField(FieldDefinitionHandle fdHandle)
         {
-
+            FieldDefinition fieldDefinition = _mdReader.GetFieldDefinition(fdHandle);
+            string name = _mdReader.GetString(fieldDefinition.Name);
+            Accessibility accessibility = GetAccessibilityFromAttributes(fieldDefinition.Attributes);
+            return new LazyFieldMetadata(name, accessibility, fieldDefinition, this);
         }
 
-        internal IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> ReadTypeProperties(TypeDefinition typeDefinition)
+        internal IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> ReadProperties(IEnumerable<PropertyDefinitionHandle> propertyHandles)
         {
-
+            var properties = new Dictionary<string, List<IPropertyMetadata>>();
+            foreach (PropertyDefinitionHandle propertyHandle in propertyHandles)
+            {
+                IPropertyMetadata property = ReadProperty(propertyHandle);
+                if (!properties.ContainsKey(property.Name))
+                {
+                    properties.Add(property.Name, new List<IPropertyMetadata>());
+                }
+                properties[property.Name].Add(property);
+            }
+            return MakeListTableImmutable(properties);
         }
 
-        internal IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> ReadTypeMethods(TypeDefinition typeDefintion)
+        internal IPropertyMetadata ReadProperty(PropertyDefinitionHandle propertyHandle)
         {
-
+            PropertyDefinition propertyDefinition = _mdReader.GetPropertyDefinition(propertyHandle);
+            string name = _mdReader.GetString(propertyDefinition.Name);
+            return new LazyPropertyMetadata(name, propertyDefinition, this);
         }
 
-        internal IReadOnlyDictionary<string, ITypeMetadata> ReadTypeNestedTypes(TypeDefinition typeDefinition)
+        internal IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> ReadMethods(IEnumerable<MethodDefinitionHandle> methodHandles)
         {
+            var methods = new Dictionary<string, List<IMethodMetadata>>();
+            foreach (MethodDefinitionHandle methodHandle in methodHandles)
+            {
+                IMethodMetadata method = ReadMethod(methodHandle);
+                if (!methods.ContainsKey(method.Name))
+                {
+                    methods.Add(method.Name, new List<IMethodMetadata>());
+                }
+                methods[method.Name].Add(method);
+            }
+            return MakeListTableImmutable(methods);
+        }
 
+        internal IMethodMetadata ReadMethod(MethodDefinitionHandle methodHandle)
+        {
+            MethodDefinition methodDefinition = _mdReader.GetMethodDefinition(methodHandle);
+            string name = _mdReader.GetString(methodDefinition.Name);
+            Accessibility accessibility = GetAccessibilityFromAttributes(methodDefinition.Attributes);
+            return new LazyMethodMetadata(name, accessibility, methodDefinition, this);
+        }
+
+        private string ReadTypeFullName(TypeDefinition typeDefinition, ITypeMetadata enclosingType = null)
+        {
+            return ReadTypeFullName(typeDefinition, out string name, out string @namespace, enclosingType);
+        }
+
+        private string ReadTypeFullName(TypeDefinition typeDefinition, out string name, out string @namespace, ITypeMetadata enclosingType = null)
+        {
+            name = _mdReader.GetString(typeDefinition.Name);
+            @namespace = typeDefinition.Namespace.IsNil
+                ? null
+                : _mdReader.GetString(typeDefinition.Namespace);
+
+            if (enclosingType == null)
+            {
+                return GetTypeFullName(name, @namespace);
+            }
+
+            return GetTypeFullName(name, enclosingType);
         }
 
         #endregion /* Assembly reading methods */
+
+        #region Type resolution hooks
+
+        internal IReadOnlyDictionary<string, ITypeMetadata> ReadTypeReferences()
+        {
+            return ResolveTypeReferences(_mdReader.TypeReferences);
+        }
+
+        internal IReadOnlyDictionary<string, ITypeMetadata> ResolveTypeReferences(IEnumerable<TypeReferenceHandle> trHandles)
+        {
+            var typeReferences = new Dictionary<string, ITypeMetadata>();
+            foreach (TypeReferenceHandle trHandle in trHandles)
+            {
+                ITypeMetadata typeReference = ResolveType(trHandle);
+                typeReferences.Add(typeReference.FullName, typeReference);
+            }
+            return typeReferences.ToImmutableDictionary();
+        }
+
+        internal ITypeMetadata ResolveType(TypeReferenceHandle trHandle)
+        {
+            // TODO: Search assembly, then search the dir resolver, then search the loaded type resolver
+            throw new NotImplementedException();
+        }
+
+        #endregion /* Type resolution hooks */
 
         #region Static methods
 
@@ -318,6 +378,9 @@ namespace MetadataHydrator.Lazy
             case TypeAttributes.NestedAssembly:
                 return Accessibility.Internal;
 
+            case TypeAttributes.NestedFamily:
+                return Accessibility.Protected;
+
             case TypeAttributes.NestedPrivate:
             case TypeAttributes.NotPublic:
                 return Accessibility.Private;
@@ -325,6 +388,70 @@ namespace MetadataHydrator.Lazy
             default:
                 throw new Exception($"Unknown type visibility attributes: {typeAttributes}");
             }
+        }
+
+        private static Accessibility GetAccessibilityFromAttributes(FieldAttributes fieldAttributes)
+        {
+            switch (fieldAttributes & FieldAttributes.FieldAccessMask)
+            {
+            case FieldAttributes.Public:
+                return Accessibility.Public;
+
+            case FieldAttributes.FamANDAssem:
+                return Accessibility.ProtectedAndInternal;
+
+            case FieldAttributes.FamORAssem:
+                return Accessibility.ProtectedOrInternal;
+
+            case FieldAttributes.Assembly:
+                return Accessibility.Internal;
+
+            case FieldAttributes.Family:
+                return Accessibility.Protected;
+
+            case FieldAttributes.Private:
+                return Accessibility.Private;
+
+            default:
+                throw new Exception($"Unknown field visibility attributes: {fieldAttributes}");
+            }
+        }
+
+        private static Accessibility GetAccessibilityFromAttributes(MethodAttributes methodAttributes)
+        {
+            switch (methodAttributes & MethodAttributes.MemberAccessMask)
+            {
+            case MethodAttributes.Public:
+                return Accessibility.Public;
+
+            case MethodAttributes.FamANDAssem:
+                return Accessibility.ProtectedAndInternal;
+
+            case MethodAttributes.FamORAssem:
+                return Accessibility.ProtectedOrInternal;
+
+            case MethodAttributes.Assembly:
+                return Accessibility.Internal;
+
+            case MethodAttributes.Family:
+                return Accessibility.Protected;
+
+            case MethodAttributes.Private:
+                return Accessibility.Private;
+
+            default:
+                throw new Exception($"Unknown method visibility attributes: {methodAttributes}");
+            }
+        }
+
+        private static IReadOnlyDictionary<K, IReadOnlyCollection<V>> MakeListTableImmutable<K, V>(Dictionary<K, List<V>> table)
+        {
+            var dictionary = new Dictionary<K, IReadOnlyCollection<V>>();
+            foreach (KeyValuePair<K, List<V>> entry in table)
+            {
+                dictionary.Add(entry.Key, entry.Value.ToImmutableArray());
+            }
+            return dictionary.ToImmutableDictionary();
         }
 
         #endregion /* Static methods */

@@ -12,7 +12,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
-        private string _culture;
+        private readonly Lazy<string> _culture;
 
         public LazyAssemblyReferenceMetadata(
             string assemblyName,
@@ -22,18 +22,12 @@ namespace MetadataHydrator.Lazy.Metadata
             _assemblyReference = assemblyReference;
             _assemblyHydrator = assemblyHydrator;
             Name = assemblyName;
+            _culture = new Lazy<string>(() => _assemblyHydrator.ReadString(_assemblyReference.Culture));
         }
 
         public string Culture
         {
-            get
-            {
-                if (_culture == null)
-                {
-                    _culture = _assemblyHydrator.ReadAssemblyCulture(_assemblyReference);
-                }
-                return _culture;
-            }
+            get => _culture.Value;
         }
 
         public AssemblyFlags Flags => _assemblyReference.Flags;

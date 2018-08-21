@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using MetadataHydrator.Lazy.LoadedTypes;
+using MetadataHydrator.Lazy.Metadata;
 
 namespace MetadataHydrator.Lazy
 {
@@ -16,22 +17,18 @@ namespace MetadataHydrator.Lazy
             _loadedTypeResolver = new LoadedTypeResolver();
         }
 
-        public AssemblyDirectoryResolver GetResolverForPath(
-            string assemblyPath,
-            out LazyAssemblyDefinitionMetadata assembly)
+        public AssemblyDirectoryResolver GetResolverForPath(string assemblyPath)
         {
             var assemblyFile = new FileInfo(assemblyPath);
             if (_assemblyDirectories.TryGetValue(assemblyFile.DirectoryName, out AssemblyDirectoryResolver asmDirResolver))
             {
-                assembly = asmDirResolver.GetAssemblyByFilename(assemblyFile.Name);
                 return asmDirResolver;
             }
 
             asmDirResolver = AssemblyDirectoryResolver.Create(
                 this,
                 _loadedTypeResolver,
-                assemblyFile,
-                out assembly);
+                assemblyFile);
             
             _assemblyDirectories.Add(assemblyFile.DirectoryName, asmDirResolver);
 
