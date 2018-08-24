@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Metadata;
@@ -8,6 +9,8 @@ namespace MetadataHydrator.Lazy.Metadata
     internal class LazyMethodMetadata : LazyMemberMetadata, IMethodMetadata
     {
         private readonly MethodDefinition _methodDefinition;
+
+        private readonly Lazy<IReadOnlyCollection<ICustomAttributeMetadata>> _customAttributes;
 
         public LazyMethodMetadata(
             string name,
