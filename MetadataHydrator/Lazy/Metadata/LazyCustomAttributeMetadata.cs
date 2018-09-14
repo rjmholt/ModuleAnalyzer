@@ -15,10 +15,10 @@ namespace MetadataHydrator.Lazy.Metadata
             _assemblyHydrator = assemblyHydrator;
         }
 
-        public ITypeMetadata AttributeType => throw new System.NotImplementedException();
+        public ITypeDefinitionMetadata AttributeType => throw new System.NotImplementedException();
 
-        public IReadOnlyCollection<CustomAttributeTypedArgument<ITypeMetadata>> FixedArguments => throw new System.NotImplementedException();
+        public IReadOnlyCollection<CustomAttributeTypedArgument<ITypeDefinitionMetadata>> FixedArguments => throw new System.NotImplementedException();
 
-        public IReadOnlyDictionary<string, CustomAttributeNamedArgument<ITypeMetadata>> NamedArguments => throw new System.NotImplementedException();
+        public IReadOnlyDictionary<string, CustomAttributeNamedArgument<ITypeDefinitionMetadata>> NamedArguments => throw new System.NotImplementedException();
     }
 }

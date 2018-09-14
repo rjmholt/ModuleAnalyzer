@@ -110,14 +110,26 @@ namespace MetadataHydrator.Lazy
             return customAttributes.ToImmutableArray();
         }
 
-        internal IReadOnlyDictionary<string, IAssemblyMetadata> ReadReferencedAssemblies()
+        internal IReadOnlyCollection<LazyGenericParameterMetadata> ReadGenericParameters(IEnumerable<GenericParameterHandle> gpHandles)
+        {
+            var genericParameters = new List<LazyGenericParameterMetadata>();
+            foreach (GenericParameterHandle gpHandle in gpHandles)
+            {
+                GenericParameter genericParameter = _mdReader.GetGenericParameter(gpHandle);
+                genericParameters.Add(new LazyGenericParameterMetadata(genericParameter, this));
+            }
+
+            return genericParameters;
+        }
+
+        internal IReadOnlyDictionary<string, IAssemblyDefinitionMetadata> ReadReferencedAssemblies()
         {
             return ReadAssemblyReferences(_mdReader.AssemblyReferences);
         }
 
-        internal IReadOnlyDictionary<string, IAssemblyMetadata> ReadAssemblyReferences(IEnumerable<AssemblyReferenceHandle> arHandles)
+        internal IReadOnlyDictionary<string, IAssemblyDefinitionMetadata> ReadAssemblyReferences(IEnumerable<AssemblyReferenceHandle> arHandles)
         {
-            var requiredAssemblies = new Dictionary<string, IAssemblyMetadata>();
+            var requiredAssemblies = new Dictionary<string, IAssemblyDefinitionMetadata>();
             foreach (AssemblyReferenceHandle asmRefHandle in arHandles)
             {
                 AssemblyReference assemblyReference = _mdReader.GetAssemblyReference(asmRefHandle);
@@ -131,17 +143,17 @@ namespace MetadataHydrator.Lazy
             return requiredAssemblies.ToImmutableDictionary();
         }
 
-        internal IReadOnlyDictionary<string, ITypeMetadata> ReadDefinedTypes()
+        internal IReadOnlyDictionary<string, ITypeDefinitionMetadata> ReadDefinedTypes()
         {
             return ReadTypeDefinitions(_mdReader.TypeDefinitions, skipNested: true);
         }
 
-        internal IReadOnlyDictionary<string, ITypeMetadata> ReadTypeDefinitions(
+        internal IReadOnlyDictionary<string, ITypeDefinitionMetadata> ReadTypeDefinitions(
             IEnumerable<TypeDefinitionHandle> tdHandles,
-            ITypeMetadata enclosingType = null,
+            ITypeDefinitionMetadata enclosingType = null,
             bool skipNested = false)
         {
-            var definedTypes = new Dictionary<string, ITypeMetadata>();
+            var definedTypes = new Dictionary<string, ITypeDefinitionMetadata>();
             foreach (TypeDefinitionHandle tdHandle in tdHandles)
             {
                 if (tdHandle.IsNil)
@@ -164,7 +176,7 @@ namespace MetadataHydrator.Lazy
 
         internal LazyTypeDefinitionMetadata ReadTypeDefinition(
             TypeDefinition typeDefinition,
-            ITypeMetadata enclosingType = null)
+            ITypeDefinitionMetadata enclosingType = null)
         {
             string fullName = ReadTypeFullName(typeDefinition, out string name, out string @namespace, enclosingType);
 
@@ -183,7 +195,7 @@ namespace MetadataHydrator.Lazy
         }
 
 
-        internal ITypeMetadata ReadPossiblyNestedTypeDefinition(TypeDefinition typeDefintion)
+        internal ITypeDefinitionMetadata ReadPossiblyNestedTypeDefinition(TypeDefinition typeDefintion)
         {
             if (!typeDefintion.IsNested)
             {
@@ -193,7 +205,7 @@ namespace MetadataHydrator.Lazy
             throw new NotImplementedException("Cannot read nested type without context yet");
         }
 
-        internal ITypeMetadata ReadTypeFromHandle(EntityHandle handle)
+        internal ITypeDefinitionMetadata ReadTypeFromHandle(EntityHandle handle)
         {
             if (handle.IsNil)
             {
@@ -288,12 +300,12 @@ namespace MetadataHydrator.Lazy
             return new LazyMethodMetadata(name, accessibility, methodDefinition, this);
         }
 
-        private string ReadTypeFullName(TypeDefinition typeDefinition, ITypeMetadata enclosingType = null)
+        private string ReadTypeFullName(TypeDefinition typeDefinition, ITypeDefinitionMetadata enclosingType = null)
         {
             return ReadTypeFullName(typeDefinition, out string name, out string @namespace, enclosingType);
         }
 
-        private string ReadTypeFullName(TypeDefinition typeDefinition, out string name, out string @namespace, ITypeMetadata enclosingType = null)
+        private string ReadTypeFullName(TypeDefinition typeDefinition, out string name, out string @namespace, ITypeDefinitionMetadata enclosingType = null)
         {
             name = _mdReader.GetString(typeDefinition.Name);
             @namespace = typeDefinition.Namespace.IsNil
@@ -312,26 +324,31 @@ namespace MetadataHydrator.Lazy
 
         #region Type resolution hooks
 
-        internal IReadOnlyDictionary<string, ITypeMetadata> ReadTypeReferences()
+        internal IReadOnlyDictionary<string, ITypeDefinitionMetadata> ReadTypeReferences()
         {
             return ResolveTypeReferences(_mdReader.TypeReferences);
         }
 
-        internal IReadOnlyDictionary<string, ITypeMetadata> ResolveTypeReferences(IEnumerable<TypeReferenceHandle> trHandles)
+        internal IReadOnlyDictionary<string, ITypeDefinitionMetadata> ResolveTypeReferences(IEnumerable<TypeReferenceHandle> trHandles)
         {
-            var typeReferences = new Dictionary<string, ITypeMetadata>();
+            var typeReferences = new Dictionary<string, ITypeDefinitionMetadata>();
             foreach (TypeReferenceHandle trHandle in trHandles)
             {
-                ITypeMetadata typeReference = ResolveType(trHandle);
+                ITypeDefinitionMetadata typeReference = ResolveType(trHandle);
                 typeReferences.Add(typeReference.FullName, typeReference);
             }
             return typeReferences.ToImmutableDictionary();
         }
 
-        internal ITypeMetadata ResolveType(TypeReferenceHandle trHandle)
+        internal ITypeDefinitionMetadata ResolveType(TypeReferenceHandle trHandle)
         {
             // TODO: Search assembly, then search the dir resolver, then search the loaded type resolver
             throw new NotImplementedException();
+        }
+
+        internal ITypeDefinitionMetadata ResolveFieldType(FieldDefinition fieldDefinition)
+        {
+            return fieldDefinition.DecodeSignature();
         }
 
         #endregion /* Type resolution hooks */
@@ -340,7 +357,7 @@ namespace MetadataHydrator.Lazy
 
         private static string GetTypeFullName(string name, string @namespace)
         {
-            if (@namespace == null)
+            if (String.IsNullOrEmpty(@namespace))
             {
                 return name;
             }
@@ -352,7 +369,7 @@ namespace MetadataHydrator.Lazy
                 .ToString();
         }
 
-        private static string GetTypeFullName(string name, ITypeMetadata enclosingType)
+        private static string GetTypeFullName(string name, ITypeDefinitionMetadata enclosingType)
         {
             return new StringBuilder()
                 .Append(enclosingType.FullName)

@@ -5,7 +5,7 @@ namespace MetadataHydrator
 {
     public interface IMethodMetadata : IMemberMetadata
     {
-        ITypeMetadata ReturnType { get; }
+        ITypeDefinitionMetadata ReturnType { get; }
 
         Accessibility Accessibility { get; }
 
@@ -13,7 +13,7 @@ namespace MetadataHydrator
 
         bool isAbstract { get; }
 
-        IReadOnlyCollection<ITypeMetadata> ParameterTypes { get; }
+        IReadOnlyCollection<ITypeDefinitionMetadata> ParameterTypes { get; }
 
         IReadOnlyCollection<IGenericParameterMetadata> GenericParameters { get; }
     }

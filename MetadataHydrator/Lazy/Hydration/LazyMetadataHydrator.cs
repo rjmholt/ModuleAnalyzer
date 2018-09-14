@@ -12,7 +12,7 @@ namespace MetadataHydrator.Lazy
             _assemblyResolver = new AssemblyResolver();
         }
 
-        public IAssemblyMetadata ReadAssembly(string assemblyPath)
+        public IAssemblyDefinitionMetadata ReadAssembly(string assemblyPath)
         {
             AssemblyDirectoryResolver asmDirResolver = _assemblyResolver.GetResolverForPath(assemblyPath);
             string assemblyFileName = Path.GetFileName(assemblyPath);

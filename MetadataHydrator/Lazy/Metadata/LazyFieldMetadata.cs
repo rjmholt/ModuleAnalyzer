@@ -11,7 +11,7 @@ namespace MetadataHydrator.Lazy.Metadata
     {
         private readonly FieldDefinition _fieldDefinition;
 
-        private ITypeMetadata _type;
+        private ITypeDefinitionMetadata _type;
 
         private readonly Lazy<IReadOnlyCollection<ICustomAttributeMetadata>> _customAttributes;
 
@@ -33,7 +33,7 @@ namespace MetadataHydrator.Lazy.Metadata
         public bool IsStatic { get => _fieldDefinition.Attributes.HasFlag(FieldAttributes.Static); }
 
 
-        public ITypeMetadata Type
+        public ITypeDefinitionMetadata Type
         {
             get
             {

@@ -5,13 +5,13 @@ using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator.Lazy.Metadata
 {
-    internal class LazyTypeDefinitionMetadata : ITypeMetadata
+    internal class LazyTypeDefinitionMetadata : ITypeDefinitionMetadata
     {
         private readonly TypeDefinition _typeDefinition;
 
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
-        private readonly Lazy<ITypeMetadata> _baseType;
+        private readonly Lazy<ITypeDefinitionMetadata> _baseType;
 
         private readonly Lazy<IReadOnlyDictionary<string, IFieldMetadata>> _fields;
 
@@ -19,7 +19,11 @@ namespace MetadataHydrator.Lazy.Metadata
 
         private readonly Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>>> _methods;
 
-        private readonly Lazy<IReadOnlyDictionary<string, ITypeMetadata>> _nestedTypes;
+        private readonly Lazy<IReadOnlyDictionary<string, ITypeDefinitionMetadata>> _nestedTypes;
+
+        private readonly Lazy<IReadOnlyCollection<ICustomAttributeMetadata>> _customAttributes;
+
+        private readonly Lazy<IReadOnlyCollection<IGenericParameterMetadata>> _genericParameters;
 
         public LazyTypeDefinitionMetadata(
             TypeDefinition typeDefintion,
@@ -39,11 +43,13 @@ namespace MetadataHydrator.Lazy.Metadata
             FullName = fullName;
             Accessibility = accessibility;
 
-            _baseType = new Lazy<ITypeMetadata>(() => _assemblyHydrator.ReadTypeFromHandle(_typeDefinition.BaseType));
+            _baseType = new Lazy<ITypeDefinitionMetadata>(() => _assemblyHydrator.ReadTypeFromHandle(_typeDefinition.BaseType));
             _fields = new Lazy<IReadOnlyDictionary<string, IFieldMetadata>>(() => _assemblyHydrator.ReadFields(_typeDefinition.GetFields()));
             _properties = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>>>(() => _assemblyHydrator.ReadProperties(_typeDefinition.GetProperties()));
             _methods = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>>>(() => _assemblyHydrator.ReadMethods(_typeDefinition.GetMethods()));
-            _nestedTypes = new Lazy<IReadOnlyDictionary<string, ITypeMetadata>>(() => _assemblyHydrator.ReadTypeDefinitions(_typeDefinition.GetNestedTypes(), enclosingType: this));
+            _nestedTypes = new Lazy<IReadOnlyDictionary<string, ITypeDefinitionMetadata>>(() => _assemblyHydrator.ReadTypeDefinitions(_typeDefinition.GetNestedTypes(), enclosingType: this));
+            _customAttributes = new Lazy<IReadOnlyCollection<ICustomAttributeMetadata>>(() => _assemblyHydrator.ReadCustomAttributes(_typeDefinition.GetCustomAttributes()));
+            _genericParameters = new Lazy<IReadOnlyCollection<IGenericParameterMetadata>>(() => _assemblyHydrator.ReadGenericParameters(_typeDefinition.GetGenericParameters()));
         }
 
         public string Name { get; }
@@ -54,7 +60,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public Accessibility Accessibility { get; }
 
-        public ITypeMetadata BaseType
+        public ITypeDefinitionMetadata BaseType
         {
             get => _baseType.Value;
         }
@@ -74,11 +80,21 @@ namespace MetadataHydrator.Lazy.Metadata
             get => _methods.Value;
         }
 
-        public IReadOnlyDictionary<string, ITypeMetadata> NestedTypes
+        public IReadOnlyDictionary<string, ITypeDefinitionMetadata> NestedTypes
         {
             get => _nestedTypes.Value;
         }
 
-        public IAssemblyMetadata Assembly { get; }
+        public IAssemblyDefinitionMetadata Assembly { get; }
+
+        public IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes
+        {
+            get => _customAttributes.Value;
+        }
+
+        public IReadOnlyCollection<IGenericParameterMetadata> GenericParameters
+        {
+            get => _genericParameters.Value;
+        }
     }
 }

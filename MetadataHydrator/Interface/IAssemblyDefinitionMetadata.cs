@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace MetadataHydrator
 {
-    public interface IAssemblyMetadata
+    public interface IAssemblyDefinitionMetadata
     {
         string Culture { get; }
 
@@ -19,13 +19,13 @@ namespace MetadataHydrator
 
         Version Version { get; }
 
-        IReadOnlyDictionary<string, IAssemblyMetadata> RequiredAssemblies { get; }
+        IReadOnlyDictionary<string, IAssemblyDefinitionMetadata> RequiredAssemblies { get; }
 
         FileInfo File { get; }
 
-        IReadOnlyDictionary<string, ITypeMetadata> TypeDefinitions { get; }
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeDefinitions { get; }
 
-        IReadOnlyDictionary<string, ITypeMetadata> TypeReferences { get; }
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeReferences { get; }
 
         IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
     }

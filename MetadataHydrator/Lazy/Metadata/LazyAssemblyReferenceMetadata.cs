@@ -6,13 +6,17 @@ using System.Reflection.Metadata;
 
 namespace MetadataHydrator.Lazy.Metadata
 {
-    internal class LazyAssemblyReferenceMetadata : IAssemblyMetadata
+    internal class LazyAssemblyReferenceMetadata : IAssemblyReferenceMetadata, IAssemblyDefinitionMetadata
     {
         private readonly AssemblyReference _assemblyReference;
 
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
         private readonly Lazy<string> _culture;
+
+        private readonly Lazy<IReadOnlyCollection<byte>> _hashValue;
+
+        private readonly Lazy<IReadOnlyCollection<byte>> _publicToken;
 
         public LazyAssemblyReferenceMetadata(
             string assemblyName,
@@ -23,6 +27,8 @@ namespace MetadataHydrator.Lazy.Metadata
             _assemblyHydrator = assemblyHydrator;
             Name = assemblyName;
             _culture = new Lazy<string>(() => _assemblyHydrator.ReadString(_assemblyReference.Culture));
+            _hashValue = new Lazy<IReadOnlyCollection<byte>>(() => _assemblyHydrator.ReadBlob(_assemblyReference.HashValue));
+            _publicToken = new Lazy<IReadOnlyCollection<byte>>(() => _assemblyHydrator.ReadBlob(_assemblyReference.PublicKeyOrToken));
         }
 
         public string Culture
@@ -32,22 +38,26 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public AssemblyFlags Flags => _assemblyReference.Flags;
 
-        public AssemblyHashAlgorithm HashAlgorithm => throw new NotImplementedException();
-
         public string Name { get; }
-
-        public IReadOnlyCollection<byte> PublicKey => throw new NotImplementedException();
 
         public Version Version => _assemblyReference.Version;
 
-        public IReadOnlyDictionary<string, IAssemblyMetadata> RequiredAssemblies => throw new NotImplementedException();
+        public IReadOnlyCollection<byte> HashValue => _hashValue.Value;
 
-        public FileInfo File => throw new NotImplementedException();
+        public IReadOnlyCollection<byte> PublicKeyOrToken => _publicToken.Value;
 
-        public IReadOnlyDictionary<string, ITypeMetadata> TypeDefinitions => throw new NotImplementedException();
+        AssemblyHashAlgorithm IAssemblyDefinitionMetadata.HashAlgorithm => throw new NotImplementedException();
 
-        public IReadOnlyDictionary<string, ITypeMetadata> TypeReferences => throw new NotImplementedException();
+        IReadOnlyCollection<byte> IAssemblyDefinitionMetadata.PublicKey => throw new NotImplementedException();
 
-        public IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes => throw new NotImplementedException();
+        IReadOnlyDictionary<string, IAssemblyDefinitionMetadata> IAssemblyDefinitionMetadata.RequiredAssemblies => throw new NotImplementedException();
+
+        FileInfo IAssemblyDefinitionMetadata.File => throw new NotImplementedException();
+
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> IAssemblyDefinitionMetadata.TypeDefinitions => throw new NotImplementedException();
+
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> IAssemblyDefinitionMetadata.TypeReferences => throw new NotImplementedException();
+
+        IReadOnlyCollection<ICustomAttributeMetadata> IAssemblyDefinitionMetadata.CustomAttributes => throw new NotImplementedException();
     }
 }

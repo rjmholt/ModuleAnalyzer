@@ -5,10 +5,10 @@ namespace MetadataHydrator
 {
     public interface ICustomAttributeMetadata
     {
-        ITypeMetadata AttributeType { get; }
+        ITypeDefinitionMetadata AttributeType { get; }
 
-        IReadOnlyCollection<CustomAttributeTypedArgument<ITypeMetadata>> FixedArguments { get; }
+        IReadOnlyCollection<CustomAttributeTypedArgument<ITypeDefinitionMetadata>> FixedArguments { get; }
 
-        IReadOnlyDictionary<string, CustomAttributeNamedArgument<ITypeMetadata>> NamedArguments { get; }
+        IReadOnlyDictionary<string, CustomAttributeNamedArgument<ITypeDefinitionMetadata>> NamedArguments { get; }
     }
 }

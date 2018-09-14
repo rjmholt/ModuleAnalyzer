@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator.Lazy.Metadata
 {
-    internal class LazyTypeReferenceMetadata : ITypeMetadata
+    internal class LazyTypeReferenceMetadata : ITypeReferenceMetadata, ITypeDefinitionMetadata
     {
         public LazyTypeReferenceMetadata(
             string name,
@@ -21,18 +21,22 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public string FullName { get; }
 
-        public Accessibility Accessibility => throw new System.NotImplementedException();
+        Accessibility ITypeDefinitionMetadata.Accessibility => throw new System.NotImplementedException();
 
-        public ITypeMetadata BaseType => throw new System.NotImplementedException();
+        ITypeDefinitionMetadata ITypeDefinitionMetadata.BaseType => throw new System.NotImplementedException();
 
-        public IReadOnlyDictionary<string, IFieldMetadata> Fields => throw new System.NotImplementedException();
+        IReadOnlyDictionary<string, IFieldMetadata> ITypeDefinitionMetadata.Fields => throw new System.NotImplementedException();
 
-        public IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> Properties => throw new System.NotImplementedException();
+        IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>> ITypeDefinitionMetadata.Properties => throw new System.NotImplementedException();
 
-        public IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> Methods => throw new System.NotImplementedException();
+        IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> ITypeDefinitionMetadata.Methods => throw new System.NotImplementedException();
 
-        public IReadOnlyDictionary<string, ITypeMetadata> NestedTypes => throw new System.NotImplementedException();
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> ITypeDefinitionMetadata.NestedTypes => throw new System.NotImplementedException();
 
-        public IAssemblyMetadata Assembly => throw new System.NotImplementedException();
+        IReadOnlyCollection<ICustomAttributeMetadata> ITypeDefinitionMetadata.CustomAttributes => throw new System.NotImplementedException();
+
+        IReadOnlyCollection<IGenericParameterMetadata> ITypeDefinitionMetadata.GenericParameters => throw new System.NotImplementedException();
+
+        IAssemblyDefinitionMetadata ITypeDefinitionMetadata.Assembly => throw new System.NotImplementedException();
     }
 }

@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator
 {
-    public interface ITypeMetadata
+    public interface ITypeDefinitionMetadata
     {
         string Name { get; }
 
@@ -13,7 +13,7 @@ namespace MetadataHydrator
 
         Accessibility Accessibility { get; }
 
-        ITypeMetadata BaseType { get; }
+        ITypeDefinitionMetadata BaseType { get; }
 
         IReadOnlyDictionary<string, IFieldMetadata> Fields { get; }
 
@@ -21,8 +21,12 @@ namespace MetadataHydrator
 
         IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>> Methods { get; }
 
-        IReadOnlyDictionary<string, ITypeMetadata> NestedTypes { get; }
+        IReadOnlyDictionary<string, ITypeDefinitionMetadata> NestedTypes { get; }
 
-        IAssemblyMetadata Assembly { get; }
+        IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
+
+        IReadOnlyCollection<IGenericParameterMetadata> GenericParameters { get; }
+
+        IAssemblyDefinitionMetadata Assembly { get; }
     }
 }

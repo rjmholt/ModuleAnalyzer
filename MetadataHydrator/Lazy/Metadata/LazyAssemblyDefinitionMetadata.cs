@@ -6,7 +6,7 @@ using System.Reflection.Metadata;
 
 namespace MetadataHydrator.Lazy.Metadata
 {
-    internal class LazyAssemblyDefinitionMetadata : IAssemblyMetadata
+    internal class LazyAssemblyDefinitionMetadata : IAssemblyDefinitionMetadata
     {
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
@@ -16,11 +16,11 @@ namespace MetadataHydrator.Lazy.Metadata
 
         private readonly Lazy<string> _name;
 
-        private readonly Lazy<IReadOnlyDictionary<string, ITypeMetadata>> _definedTypes;
+        private readonly Lazy<IReadOnlyDictionary<string, ITypeDefinitionMetadata>> _definedTypes;
 
         private readonly Lazy<IReadOnlyCollection<byte>> _publicKey;
 
-        private readonly Lazy<IReadOnlyDictionary<string, IAssemblyMetadata>> _requiredAssemblies;
+        private readonly Lazy<IReadOnlyDictionary<string, IAssemblyDefinitionMetadata>> _requiredAssemblies;
 
         private readonly Lazy<IReadOnlyCollection<ICustomAttributeMetadata>> _customAttributes;
 
@@ -34,8 +34,8 @@ namespace MetadataHydrator.Lazy.Metadata
             _culture = new Lazy<string>(() => _assemblyHydrator.ReadString(_assemblyDefinition.Culture));
             _name = new Lazy<string>(() => _assemblyHydrator.ReadString(_assemblyDefinition.Name));
             _publicKey = new Lazy<IReadOnlyCollection<byte>>(() => _assemblyHydrator.ReadBlob(_assemblyDefinition.PublicKey));
-            _definedTypes = new Lazy<IReadOnlyDictionary<string, ITypeMetadata>>(() => _assemblyHydrator.ReadDefinedTypes());
-            _requiredAssemblies = new Lazy<IReadOnlyDictionary<string, IAssemblyMetadata>>(() => _assemblyHydrator.ReadReferencedAssemblies());
+            _definedTypes = new Lazy<IReadOnlyDictionary<string, ITypeDefinitionMetadata>>(() => _assemblyHydrator.ReadDefinedTypes());
+            _requiredAssemblies = new Lazy<IReadOnlyDictionary<string, IAssemblyDefinitionMetadata>>(() => _assemblyHydrator.ReadReferencedAssemblies());
             _customAttributes = new Lazy<IReadOnlyCollection<ICustomAttributeMetadata>>(() => _assemblyHydrator.ReadCustomAttributes(_assemblyDefinition.GetCustomAttributes()));
         }
 
@@ -60,7 +60,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public Version Version => _assemblyDefinition.Version;
 
-        public IReadOnlyDictionary<string, IAssemblyMetadata> RequiredAssemblies
+        public IReadOnlyDictionary<string, IAssemblyDefinitionMetadata> RequiredAssemblies
         {
             get => _requiredAssemblies.Value;
         }
@@ -70,7 +70,7 @@ namespace MetadataHydrator.Lazy.Metadata
             get => _assemblyHydrator.AssemblyFile;
         }
 
-        public IReadOnlyDictionary<string, ITypeMetadata> TypeDefinitions
+        public IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeDefinitions
         {
             get => _definedTypes.Value;
         }
@@ -80,6 +80,6 @@ namespace MetadataHydrator.Lazy.Metadata
             get => _customAttributes.Value;
         }
 
-        public IReadOnlyDictionary<string, ITypeMetadata> TypeReferences => throw new NotImplementedException();
+        public IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeReferences => throw new NotImplementedException();
     }
 }

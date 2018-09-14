@@ -12,6 +12,6 @@ namespace MetadataHydrator
         /// <remarks>
         /// The API must take a path in some way, since assembly resolution occurs based on paths.
         /// </remarks>
-        IAssemblyMetadata ReadAssembly(string assemblyPath);
+        IAssemblyDefinitionMetadata ReadAssembly(string assemblyPath);
     }
 }

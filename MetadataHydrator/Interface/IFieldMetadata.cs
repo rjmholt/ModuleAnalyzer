@@ -4,7 +4,7 @@ namespace MetadataHydrator
 {
     public interface IFieldMetadata : IMemberMetadata
     {
-        ITypeMetadata Type { get; }
+        ITypeDefinitionMetadata Type { get; }
 
         Accessibility Accessibility { get; }
 
