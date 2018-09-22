@@ -200,18 +200,9 @@ namespace MetadataAnalysis
                 asmDef.Flags,
                 publicKey,
                 asmDef.HashAlgorithm,
-                GetAssemblyCustomAttributes(),
+                ReadCustomAttributes(asmDef.GetCustomAttributes()),
                 GetAllTypeDefinitions()
             );
-        }
-
-        /// <summary>
-        /// Retrieve all the custom attributes on the wrapped assembly.
-        /// </summary>
-        /// <returns>the custom attributes on the wrapped assembly.</returns>
-        public IImmutableList<CustomAttributeMetadata> GetAssemblyCustomAttributes()
-        {
-            return null;
         }
 
         /// <summary>

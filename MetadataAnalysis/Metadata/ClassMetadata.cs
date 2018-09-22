@@ -49,6 +49,7 @@ namespace MetadataAnalysis.Metadata
                 Constructors = Constructors,
                 Fields = Fields,
                 Properties = Properties,
+                Indexers = Indexers,
                 Methods = Methods,
                 GenericParameters = InstantiateGenericList(genericArguments),
                 CustomAttributes = CustomAttributes
