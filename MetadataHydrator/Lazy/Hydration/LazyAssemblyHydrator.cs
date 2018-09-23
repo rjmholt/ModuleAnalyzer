@@ -348,7 +348,8 @@ namespace MetadataHydrator.Lazy
 
         internal ITypeDefinitionMetadata ResolveFieldType(FieldDefinition fieldDefinition)
         {
-            return fieldDefinition.DecodeSignature();
+            throw new NotImplementedException();
+            //return fieldDefinition.DecodeSignature();
         }
 
         #endregion /* Type resolution hooks */

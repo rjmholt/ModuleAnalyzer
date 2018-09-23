@@ -1,41 +1,26 @@
-using System.CodeDom.Compiler;
+using System;
 using System.IO;
-using System.Environment;
 using System.Reflection;
-using Microsoft.CSharp;
 
-namespace MetadataAnalysis.Tests
+namespace MetadataHydrator.Tests
 {
     public static class DllUtility
     {
-        private static readonly string s_assetsDirPath = Path.Combine("..", "..", "assets");
+        private static readonly string s_currentPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-        private static readonly string s_sourcePath = Path.Combine(s_assetsDirPath, "testsource.cs");
+        private static readonly string s_projRootPath = Path.Combine(s_currentPath, "..", "..", "..");
 
-        public static Assembly CompileSource()
+        private static readonly string s_assetsDirPath = Path.GetFullPath(Path.Combine(s_projRootPath, "assets"));
+
+        private static readonly string s_asmPath = Path.Combine(s_assetsDirPath, "test.dll");
+
+        public static Assembly LoadTestAssembly()
         {
-            ICodeCompiler compiler = new CSharpCodeProvider().CreateCompiler();
-
-            var parameters = new CompilerParameters()
-            {
-                GenerateInMemory = false,
-                CompilerOptions = "/unsafe"
-            };
-
-            CompilerResults compilationResults = compiler.CompileAssemblyFromFile(parameters, s_sourcePath);
-
-            if (compilationResults.Errors.Count > 0)
-            {
-                Console.WriteLine($"Errors building {s_sourcePath} into {compilationResults.PathToAssembly}:");
-                foreach (CompilerError err in compilationResults.Errors)
-                {
-                    Console.WriteLine($"\t{err.ToString()}{Environment.NewLine}");
-                }
-
-                throw new Exception("Test files failed to compile");
-            }
-
-            return Assembly.LoadFile(compilationResults.PathToAssembly);
+            return Assembly.LoadFile(s_asmPath);
         }
+
+        public static Assembly TestAssembly => s_testAssembly.Value;
+
+        private static Lazy<Assembly> s_testAssembly = new Lazy<Assembly>(LoadTestAssembly);
     }
 }
