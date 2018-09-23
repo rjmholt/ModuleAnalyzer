@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../MetadataAnalysis/MetadataAnalysis.csproj"/>
+    <ProjectReference Include="../MetadataAnalysis/MetadataAnalysis.csproj" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0-preview-04">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
