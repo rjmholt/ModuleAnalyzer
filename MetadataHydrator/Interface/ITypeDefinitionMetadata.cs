@@ -3,17 +3,11 @@ using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator
 {
-    public interface ITypeDefinitionMetadata
+    public interface ITypeDefinitionMetadata : ITypeReferenceMetadata
     {
-        string Name { get; }
-
-        string Namespace { get; }
-
-        string FullName { get; }
-
         Accessibility Accessibility { get; }
 
-        ITypeDefinitionMetadata BaseType { get; }
+        ITypeReferenceMetadata BaseType { get; }
 
         IReadOnlyDictionary<string, IFieldMetadata> Fields { get; }
 

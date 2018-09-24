@@ -16,7 +16,7 @@ namespace MetadataHydrator.Lazy.Metadata
             _customAttributes = new Lazy<IReadOnlyCollection<ICustomAttributeMetadata>>(() => _assemblyHydrator.ReadCustomAttributes(_propertyDefinition.GetCustomAttributes()));
         }
 
-        public ITypeDefinitionMetadata Type => throw new System.NotImplementedException();
+        public ITypeReferenceMetadata Type => throw new System.NotImplementedException();
 
         public override IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes => _customAttributes.Value;
 

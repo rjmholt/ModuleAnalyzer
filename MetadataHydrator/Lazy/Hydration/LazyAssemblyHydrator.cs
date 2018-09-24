@@ -7,6 +7,7 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using MetadataHydrator.Lazy.Metadata;
+using MetadataHydrator.Lazy.SignatureDecoding;
 using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator.Lazy
@@ -346,10 +347,9 @@ namespace MetadataHydrator.Lazy
             throw new NotImplementedException();
         }
 
-        internal ITypeDefinitionMetadata ResolveFieldType(FieldDefinition fieldDefinition)
+        internal ITypeReferenceMetadata ResolveFieldType(FieldDefinition fieldDefinition)
         {
-            throw new NotImplementedException();
-            //return fieldDefinition.DecodeSignature();
+            return fieldDefinition.DecodeSignature<ITypeReferenceMetadata, LazyGenericContext>(null, new LazyGenericContext(null));
         }
 
         #endregion /* Type resolution hooks */

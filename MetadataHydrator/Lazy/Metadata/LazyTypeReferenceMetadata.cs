@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace MetadataHydrator.Lazy.Metadata
 {
-    internal class LazyTypeReferenceMetadata : ITypeReferenceMetadata, ITypeDefinitionMetadata
+    internal class LazyTypeReferenceMetadata : ITypeDefinitionMetadata
     {
         public LazyTypeReferenceMetadata(
             string name,
@@ -23,7 +23,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         Accessibility ITypeDefinitionMetadata.Accessibility => throw new System.NotImplementedException();
 
-        ITypeDefinitionMetadata ITypeDefinitionMetadata.BaseType => throw new System.NotImplementedException();
+        ITypeReferenceMetadata ITypeDefinitionMetadata.BaseType => throw new System.NotImplementedException();
 
         IReadOnlyDictionary<string, IFieldMetadata> ITypeDefinitionMetadata.Fields => throw new System.NotImplementedException();
 

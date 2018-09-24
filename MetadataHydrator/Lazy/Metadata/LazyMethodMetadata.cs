@@ -23,7 +23,7 @@ namespace MetadataHydrator.Lazy.Metadata
             _methodDefinition = methodDefinition;
         }
 
-        public ITypeDefinitionMetadata ReturnType => throw new System.NotImplementedException();
+        public ITypeReferenceMetadata ReturnType => throw new System.NotImplementedException();
 
         public Accessibility Accessibility { get; }
 
@@ -31,7 +31,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public bool isAbstract => _methodDefinition.Attributes.HasFlag(MethodAttributes.Abstract);
 
-        public IReadOnlyCollection<ITypeDefinitionMetadata> ParameterTypes => throw new System.NotImplementedException();
+        public IReadOnlyCollection<ITypeReferenceMetadata> ParameterTypes => throw new System.NotImplementedException();
 
         public IReadOnlyCollection<IGenericParameterMetadata> GenericParameters => throw new System.NotImplementedException();
 

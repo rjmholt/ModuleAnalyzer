@@ -11,7 +11,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         private readonly LazyAssemblyHydrator _assemblyHydrator;
 
-        private readonly Lazy<ITypeDefinitionMetadata> _baseType;
+        private readonly Lazy<ITypeReferenceMetadata> _baseType;
 
         private readonly Lazy<IReadOnlyDictionary<string, IFieldMetadata>> _fields;
 
@@ -43,7 +43,7 @@ namespace MetadataHydrator.Lazy.Metadata
             FullName = fullName;
             Accessibility = accessibility;
 
-            _baseType = new Lazy<ITypeDefinitionMetadata>(() => _assemblyHydrator.ReadTypeFromHandle(_typeDefinition.BaseType));
+            _baseType = new Lazy<ITypeReferenceMetadata>(() => _assemblyHydrator.ReadTypeFromHandle(_typeDefinition.BaseType));
             _fields = new Lazy<IReadOnlyDictionary<string, IFieldMetadata>>(() => _assemblyHydrator.ReadFields(_typeDefinition.GetFields()));
             _properties = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IPropertyMetadata>>>(() => _assemblyHydrator.ReadProperties(_typeDefinition.GetProperties()));
             _methods = new Lazy<IReadOnlyDictionary<string, IReadOnlyCollection<IMethodMetadata>>>(() => _assemblyHydrator.ReadMethods(_typeDefinition.GetMethods()));
@@ -60,7 +60,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         public Accessibility Accessibility { get; }
 
-        public ITypeDefinitionMetadata BaseType
+        public ITypeReferenceMetadata BaseType
         {
             get => _baseType.Value;
         }

@@ -5,5 +5,7 @@ namespace MetadataHydrator
         string Name { get; }
 
         string Namespace { get; }
+
+        string FullName { get; }
     }
 }

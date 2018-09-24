@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MetadataHydrator.Lazy.SignatureDecoding
 {
-    internal struct LazyGenericContext
+    public struct LazyGenericContext
     {
         private readonly Lazy<IReadOnlyCollection<IGenericParameterMetadata>> _classGenericParameters;
 
