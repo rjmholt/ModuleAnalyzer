@@ -7,7 +7,7 @@ namespace MetadataHydrator.Tests
     public class LazyMetadataHydratorTests : MetadataHydratorTests
     {
         public LazyMetadataHydratorTests(LazyAssemblyReaderFixture lazyAsmReaderFixture)
-            : base(lazyAsmReaderFixture.TestAssembly, lazyAsmReaderFixture.TestLazyAssembly)
+            : base(lazyAsmReaderFixture.TestLazyAssembly)
         {
         }
     }

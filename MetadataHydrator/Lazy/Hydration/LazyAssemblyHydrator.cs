@@ -374,7 +374,7 @@ namespace MetadataHydrator.Lazy
         {
             return new StringBuilder()
                 .Append(enclosingType.FullName)
-                .Append('.')
+                .Append('+')
                 .Append(name)
                 .ToString();
         }
