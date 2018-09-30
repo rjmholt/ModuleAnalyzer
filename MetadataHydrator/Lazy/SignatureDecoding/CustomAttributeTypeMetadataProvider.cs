@@ -19,9 +19,9 @@ namespace MetadataHydrator.Lazy.SignatureDecoding
         /// Create a new custom attribute metadata provider using a metadata analyzer.
         /// </summary>
         /// <param name="metadataAnalyzer">The metadata analyzer to pull metadata information from.</param>
-        public CustomAttributeTypeMetadataProvider(LoadedTypeResolver loadedTypeResolver)
+        public CustomAttributeTypeMetadataProvider(LoadedAssemblyResolver loadedAssemblyResolver)
         {
-            _simpleTypeProvider = new SimpleTypeMetadataProvider(loadedTypeResolver);
+            _simpleTypeProvider = new SimpleTypeMetadataProvider(loadedAssemblyResolver);
         }
 
         /// <summary>

@@ -80,6 +80,6 @@ namespace MetadataHydrator.Lazy.Metadata
             get => _customAttributes.Value;
         }
 
-        public IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeReferences => throw new NotImplementedException();
+        public IReadOnlyDictionary<string, ITypeReferenceMetadata> TypeReferences => throw new NotImplementedException();
     }
 }

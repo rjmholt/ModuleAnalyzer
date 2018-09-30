@@ -10,9 +10,9 @@ namespace MetadataHydrator.Lazy.SignatureDecoding
     {
         private CustomAttributeTypeMetadataProvider _customAttributeMetadataProvider;
 
-        public TypeSignatureProvider(LoadedTypeResolver loadedTypeResolver)
+        public TypeSignatureProvider(LoadedAssemblyResolver loadedAssemblyResolver)
         {
-            _customAttributeMetadataProvider = new CustomAttributeTypeMetadataProvider(loadedTypeResolver);
+            _customAttributeMetadataProvider = new CustomAttributeTypeMetadataProvider(loadedAssemblyResolver);
         }
 
         public ITypeReferenceMetadata GetArrayType(ITypeReferenceMetadata elementType, ArrayShape shape)

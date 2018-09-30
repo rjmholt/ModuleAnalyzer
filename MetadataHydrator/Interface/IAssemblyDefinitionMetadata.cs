@@ -25,7 +25,7 @@ namespace MetadataHydrator
 
         IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeDefinitions { get; }
 
-        IReadOnlyDictionary<string, ITypeDefinitionMetadata> TypeReferences { get; }
+        IReadOnlyDictionary<string, ITypeReferenceMetadata> TypeReferences { get; }
 
         IReadOnlyCollection<ICustomAttributeMetadata> CustomAttributes { get; }
     }

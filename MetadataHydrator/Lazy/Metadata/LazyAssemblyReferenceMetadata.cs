@@ -56,7 +56,7 @@ namespace MetadataHydrator.Lazy.Metadata
 
         IReadOnlyDictionary<string, ITypeDefinitionMetadata> IAssemblyDefinitionMetadata.TypeDefinitions => throw new NotImplementedException();
 
-        IReadOnlyDictionary<string, ITypeDefinitionMetadata> IAssemblyDefinitionMetadata.TypeReferences => throw new NotImplementedException();
+        IReadOnlyDictionary<string, ITypeReferenceMetadata> IAssemblyDefinitionMetadata.TypeReferences => throw new NotImplementedException();
 
         IReadOnlyCollection<ICustomAttributeMetadata> IAssemblyDefinitionMetadata.CustomAttributes => throw new NotImplementedException();
     }

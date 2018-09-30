@@ -6,11 +6,11 @@ namespace MetadataHydrator.Lazy.SignatureDecoding
 {
     public class SimpleTypeMetadataProvider : ISimpleTypeProvider<ITypeReferenceMetadata>
     {
-        private readonly LoadedTypeResolver _loadedTypeResolver;
+        private readonly LoadedAssemblyResolver _loadedAssemblyResolver;
 
-        public SimpleTypeMetadataProvider(LoadedTypeResolver loadedTypeResolver)
+        public SimpleTypeMetadataProvider(LoadedAssemblyResolver loadedAssemblyResolver)
         {
-            _loadedTypeResolver = loadedTypeResolver;
+            _loadedAssemblyResolver = loadedAssemblyResolver;
         }
 
         public ITypeReferenceMetadata GetPrimitiveType(PrimitiveTypeCode typeCode)
@@ -18,61 +18,61 @@ namespace MetadataHydrator.Lazy.SignatureDecoding
             switch (typeCode)
             {
                 case PrimitiveTypeCode.Boolean:
-                    return _loadedTypeResolver.FromType(typeof(Boolean));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Boolean));
 
                 case PrimitiveTypeCode.Byte:
-                    return _loadedTypeResolver.FromType(typeof(Byte));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Byte));
 
                 case PrimitiveTypeCode.Char:
-                    return _loadedTypeResolver.FromType(typeof(Char));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Char));
 
                 case PrimitiveTypeCode.Double:
-                    return _loadedTypeResolver.FromType(typeof(Double));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Double));
 
                 case PrimitiveTypeCode.Int16:
-                    return _loadedTypeResolver.FromType(typeof(Int16));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Int16));
 
                 case PrimitiveTypeCode.Int32:
-                    return _loadedTypeResolver.FromType(typeof(Int32));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Int32));
 
                 case PrimitiveTypeCode.Int64:
-                    return _loadedTypeResolver.FromType(typeof(Int64));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Int64));
 
                 case PrimitiveTypeCode.IntPtr:
-                    return _loadedTypeResolver.FromType(typeof(IntPtr));
+                    return _loadedAssemblyResolver.ResolveType(typeof(IntPtr));
 
                 case PrimitiveTypeCode.Object:
-                    return _loadedTypeResolver.FromType(typeof(Object));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Object));
 
                 case PrimitiveTypeCode.SByte:
-                    return _loadedTypeResolver.FromType(typeof(SByte));
+                    return _loadedAssemblyResolver.ResolveType(typeof(SByte));
 
                 case PrimitiveTypeCode.Single:
-                    return _loadedTypeResolver.FromType(typeof(Single));
+                    return _loadedAssemblyResolver.ResolveType(typeof(Single));
 
                 case PrimitiveTypeCode.String:
-                    return _loadedTypeResolver.FromType(typeof(String));
+                    return _loadedAssemblyResolver.ResolveType(typeof(String));
 
                 case PrimitiveTypeCode.TypedReference:
-                    return _loadedTypeResolver.FromType(typeof(TypedReference));
+                    return _loadedAssemblyResolver.ResolveType(typeof(TypedReference));
 
                 case PrimitiveTypeCode.UInt16:
-                    return _loadedTypeResolver.FromType(typeof(UInt16));
+                    return _loadedAssemblyResolver.ResolveType(typeof(UInt16));
 
                 case PrimitiveTypeCode.UInt32:
-                    return _loadedTypeResolver.FromType(typeof(UInt32));
+                    return _loadedAssemblyResolver.ResolveType(typeof(UInt32));
 
                 case PrimitiveTypeCode.UInt64:
-                    return _loadedTypeResolver.FromType(typeof(UInt64));
+                    return _loadedAssemblyResolver.ResolveType(typeof(UInt64));
 
                 case PrimitiveTypeCode.UIntPtr:
-                    return _loadedTypeResolver.FromType(typeof(UIntPtr));
+                    return _loadedAssemblyResolver.ResolveType(typeof(UIntPtr));
 
                 case PrimitiveTypeCode.Void:
-                    return _loadedTypeResolver.FromType(typeof(void));
+                    return _loadedAssemblyResolver.ResolveType(typeof(void));
 
                 default:
-                    throw new Exception(String.Format("Unknown typecode: '{0}'", typeCode));
+                    throw new Exception($"Unknown typecode: '{typeCode}'");
             }
         }
 
